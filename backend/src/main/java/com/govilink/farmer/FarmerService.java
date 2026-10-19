@@ -22,21 +22,11 @@ public class FarmerService {
 
     @Transactional
     public FarmerDtos.Response create(FarmerDtos.CreateRequest request) {
-        String village = request.village();
-
-        if (village != null) {
-            village = village.strip();
-
-            if (village.isEmpty()) {
-                village = null;
-            }
-        }
-
         Farmer farmer = new Farmer(
                 request.fullName().strip(),
                 request.phone().strip(),
                 request.district().strip(),
-                village
+                normalizeVillage(request.village())
         );
 
         return toResponse(repository.saveAndFlush(farmer));
@@ -60,13 +50,50 @@ public class FarmerService {
     }
 
     public FarmerDtos.Response getById(UUID id) {
-        Farmer farmer = repository.findById(id)
+        return toResponse(findFarmer(id));
+    }
+
+    @Transactional
+    public FarmerDtos.Response update(
+            UUID id,
+            FarmerUpdateRequest request
+    ) {
+        Farmer farmer = findFarmer(id);
+
+        if (farmer.getVersion() != request.version().longValue()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Farmer was changed by another request. "
+                            + "Reload the latest details and try again."
+            );
+        }
+
+        farmer.updateDetails(
+                request.fullName().strip(),
+                request.phone().strip(),
+                request.district().strip(),
+                normalizeVillage(request.village())
+        );
+
+        return toResponse(repository.saveAndFlush(farmer));
+    }
+
+    private Farmer findFarmer(UUID id) {
+        return repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Farmer not found"
                 ));
+    }
 
-        return toResponse(farmer);
+    private String normalizeVillage(String village) {
+        if (village == null) {
+            return null;
+        }
+
+        String normalized = village.strip();
+
+        return normalized.isEmpty() ? null : normalized;
     }
 
     private FarmerDtos.Response toResponse(Farmer farmer) {

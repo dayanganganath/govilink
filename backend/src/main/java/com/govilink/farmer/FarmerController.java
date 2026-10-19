@@ -36,4 +36,12 @@ public class FarmerController {
     ) {
         return service.getById(id);
     }
+
+    @PutMapping("/{id}")
+    public FarmerDtos.Response update(
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody FarmerUpdateRequest request
+    ) {
+        return service.update(id, request);
+    }
 }

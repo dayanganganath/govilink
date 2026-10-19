@@ -1,6 +1,7 @@
 package com.govilink.farmer;
 
 import jakarta.persistence.*;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -52,6 +53,18 @@ public class Farmer {
         this.village = village;
     }
 
+    public void updateDetails(
+            String fullName,
+            String phone,
+            String district,
+            String village
+    ) {
+        this.fullName = fullName;
+        this.phone = phone;
+        this.district = district;
+        this.village = village;
+    }
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();
@@ -64,13 +77,39 @@ public class Farmer {
         updatedAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public String getFullName() { return fullName; }
-    public String getPhone() { return phone; }
-    public String getDistrict() { return district; }
-    public String getVillage() { return village; }
-    public boolean isActive() { return active; }
-    public long getVersion() { return version; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public UUID getId() {
+        return id;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public String getDistrict() {
+        return district;
+    }
+
+    public String getVillage() {
+        return village;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 }

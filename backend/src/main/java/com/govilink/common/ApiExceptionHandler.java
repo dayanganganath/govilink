@@ -1,6 +1,7 @@
 package com.govilink.common;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -67,6 +68,20 @@ public class ApiExceptionHandler {
                 exception.getStatusCode(),
                 title,
                 detail,
+                request
+        );
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ProblemDetail handleConcurrentUpdate(
+            OptimisticLockingFailureException exception,
+            HttpServletRequest request
+    ) {
+        return createProblem(
+                HttpStatus.CONFLICT,
+                "Conflict",
+                "Farmer was changed by another request. "
+                        + "Reload the latest details and try again.",
                 request
         );
     }
