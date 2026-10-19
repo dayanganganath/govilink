@@ -1,0 +1,21 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
+
+# Build output
+**/target/
+**/node_modules/
+**/dist/
+
+# Editor files
+.idea/
+.vscode/
+*.iml
+
+# Logs and downloaded archive
+*.log
+/backend.zip
