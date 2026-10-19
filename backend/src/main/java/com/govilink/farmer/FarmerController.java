@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/farmers")
@@ -27,5 +28,12 @@ public class FarmerController {
     @GetMapping
     public List<FarmerDtos.Response> listLatest() {
         return service.listLatest();
+    }
+
+    @GetMapping("/{id}")
+    public FarmerDtos.Response getById(
+            @PathVariable("id") UUID id
+    ) {
+        return service.getById(id);
     }
 }

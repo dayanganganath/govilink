@@ -2,10 +2,13 @@ package com.govilink.farmer;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
@@ -23,6 +26,7 @@ public class FarmerService {
 
         if (village != null) {
             village = village.strip();
+
             if (village.isEmpty()) {
                 village = null;
             }
@@ -53,6 +57,16 @@ public class FarmerService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public FarmerDtos.Response getById(UUID id) {
+        Farmer farmer = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Farmer not found"
+                ));
+
+        return toResponse(farmer);
     }
 
     private FarmerDtos.Response toResponse(Farmer farmer) {

@@ -8,15 +8,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-
-import com.govilink.farmer.Farmer;
-import com.govilink.farmer.FarmerDtos;
-import com.govilink.farmer.FarmerRepository;
-import com.govilink.farmer.FarmerService;
-import com.govilink.farmer.FarmerDtos.CreateRequest;
-import com.govilink.farmer.FarmerDtos.Response;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,10 +42,22 @@ class FarmerServiceTest {
         var response = service.create(request);
 
         assertAll(
-                () -> assertEquals("Demo Farmer", response.fullName()),
-                () -> assertEquals("TEST-001", response.phone()),
-                () -> assertEquals("Matale", response.district()),
-                () -> assertEquals("Demo Village", response.village()),
+                () -> assertEquals(
+                        "Demo Farmer",
+                        response.fullName()
+                ),
+                () -> assertEquals(
+                        "TEST-001",
+                        response.phone()
+                ),
+                () -> assertEquals(
+                        "Matale",
+                        response.district()
+                ),
+                () -> assertEquals(
+                        "Demo Village",
+                        response.village()
+                ),
                 () -> assertTrue(response.active())
         );
 
@@ -98,6 +106,50 @@ class FarmerServiceTest {
 
         assertEquals(1, results.size());
         assertEquals("Demo Farmer", results.get(0).fullName());
+
         verify(repository).findAll(expectedPage);
+    }
+
+    @Test
+    void getByIdReturnsExistingFarmer() {
+        UUID id = UUID.randomUUID();
+        Farmer farmer = mock(Farmer.class);
+
+        when(farmer.getId()).thenReturn(id);
+        when(farmer.getFullName()).thenReturn("Demo Farmer");
+        when(repository.findById(id))
+                .thenReturn(Optional.of(farmer));
+
+        var response = service.getById(id);
+
+        assertAll(
+                () -> assertEquals(id, response.id()),
+                () -> assertEquals(
+                        "Demo Farmer",
+                        response.fullName()
+                )
+        );
+
+        verify(repository).findById(id);
+    }
+
+    @Test
+    void getByIdReturnsNotFoundWhenFarmerDoesNotExist() {
+        UUID id = UUID.randomUUID();
+
+        when(repository.findById(id))
+                .thenReturn(Optional.empty());
+
+        var exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.getById(id)
+        );
+
+        assertEquals(
+                404,
+                exception.getStatusCode().value()
+        );
+
+        verify(repository).findById(id);
     }
 }
