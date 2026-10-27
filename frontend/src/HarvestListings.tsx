@@ -6,7 +6,8 @@ import {
   listHarvests,
   searchActiveFarmers,
 } from './harvestApi'
-import type { HarvestPage } from './harvestApi'
+import type { HarvestListing, HarvestPage } from './harvestApi'
+import HarvestStatusActions from './HarvestStatusActions'
 import './HarvestListings.css'
 
 function errorMessage(error: unknown): string {
@@ -48,11 +49,7 @@ function FarmerPicker({ selected, onSelect }: FarmerPickerProps) {
   useEffect(() => {
     const controller = new AbortController()
 
-    searchActiveFarmers(
-      filters.query,
-      filters.page,
-      controller.signal,
-    )
+    searchActiveFarmers(filters.query, filters.page, controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return
         setData(result)
@@ -250,6 +247,20 @@ export default function HarvestListings() {
     }))
   }
 
+  function handleStatusChanged(updated: HarvestListing) {
+    setData((current) => current === null ? null : {
+      ...current,
+      content: current.content.map((listing) => (
+        listing.id === updated.id ? updated : listing
+      )),
+    })
+
+    setSuccess(
+      `${updated.cropName} listing for ${updated.farmerName} `
+      + `was marked ${updated.status}.`,
+    )
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -394,12 +405,13 @@ export default function HarvestListings() {
                   <th scope="col">LKR / kg</th>
                   <th scope="col">Available from</th>
                   <th scope="col">Status</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={5} className="table-message" role="status">
+                    <td colSpan={6} className="table-message" role="status">
                       Loading harvest listings…
                     </td>
                   </tr>
@@ -407,7 +419,7 @@ export default function HarvestListings() {
 
                 {ready && data.content.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="table-message">
+                    <td colSpan={6} className="table-message">
                       <strong>No harvest listings yet</strong>
                       <span>Add the first listing using the form.</span>
                     </td>
@@ -437,6 +449,13 @@ export default function HarvestListings() {
                       >
                         {listing.status}
                       </span>
+                    </td>
+                    <td className="harvest-action-cell">
+                      <HarvestStatusActions
+                        listing={listing}
+                        onChanged={handleStatusChanged}
+                        onReload={() => reload(filters.page)}
+                      />
                     </td>
                   </tr>
                 ))}

@@ -16,6 +16,8 @@ export interface HarvestListing {
   updatedAt: string
 }
 
+export type HarvestCloseStatus = 'SOLD' | 'CANCELLED'
+
 export interface HarvestPage {
   content: HarvestListing[]
   page: number
@@ -107,6 +109,21 @@ export function createHarvest(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+}
+
+export function updateHarvestStatus(
+  id: string,
+  status: HarvestCloseStatus,
+  version: number,
+): Promise<HarvestListing> {
+  return request<HarvestListing>(
+    `/api/v1/harvest-listings/${encodeURIComponent(id)}/status`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, version }),
+    },
+  )
 }
 
 export function searchActiveFarmers(

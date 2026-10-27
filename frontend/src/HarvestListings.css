@@ -74,6 +74,29 @@
   display: block;
 }
 
+.harvest-action-cell {
+  min-width: 200px;
+  max-width: 300px;
+  white-space: normal;
+}
+
+.harvest-status-actions .page-buttons {
+  flex-wrap: wrap;
+}
+
+.harvest-status-actions > p {
+  font-size: 11px;
+  color: #6d7d65;
+}
+
+.harvest-status-actions .notice {
+  margin: 12px 0 0;
+}
+
+.harvest-status-actions .notice p {
+  margin: 0 0 6px;
+}
+
 @media (max-width: 700px) {
   .workspace-nav {
     flex-direction: row;
