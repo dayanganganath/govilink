@@ -1,0 +1,88 @@
+.workspace-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.workspace-nav .nav-link {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font-family: inherit;
+}
+
+.workspace-nav .nav-link.selected {
+  background: #2a5140;
+  color: #e8f4d9;
+}
+
+.harvest-picker {
+  border-bottom: 1px solid #e1e7dd;
+  margin-bottom: 20px;
+  padding-bottom: 17px;
+}
+
+.harvest-search-row {
+  display: flex;
+  gap: 7px;
+}
+
+.harvest-search-row input {
+  min-width: 0;
+}
+
+.harvest-search-row button {
+  flex-shrink: 0;
+}
+
+.harvest-picker select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 8px;
+  border: 1px solid #dfe5d9;
+  border-radius: 7px;
+  background: #fbfcfa;
+  color: #263a2e;
+  font: inherit;
+  font-size: 12px;
+}
+
+.harvest-picker-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.harvest-picker-pages > span,
+.harvest-help,
+.harvest-selected {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #6d7d65;
+}
+
+.harvest-selected {
+  margin: 14px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.harvest-picker .notice .text-button {
+  display: block;
+}
+
+@media (max-width: 700px) {
+  .workspace-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .sidebar {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+}
