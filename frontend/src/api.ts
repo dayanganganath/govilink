@@ -27,22 +27,60 @@ export interface CreateFarmerRequest {
   village: string
 }
 
-function describeError(body: unknown, status: number): string {
-  if (typeof body === 'object' && body !== null) {
-    const problem = body as Record<string, unknown>
+export interface UpdateFarmerRequest extends CreateFarmerRequest {
+  version: number
+}
 
-    if (typeof problem.errors === 'object' && problem.errors !== null) {
-      const messages = Object.entries(problem.errors)
-        .filter((entry) => typeof entry[1] === 'string')
-        .map(([field, message]) => `${field}: ${message}`)
+export class ApiError extends Error {
+  readonly status: number
+  readonly fieldErrors: Record<string, string>
 
-      if (messages.length > 0) return messages.join(' · ')
-    }
+  constructor(
+    message: string,
+    status: number,
+    fieldErrors: Record<string, string> = {},
+  ) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.fieldErrors = fieldErrors
+  }
+}
 
-    if (typeof problem.detail === 'string') return problem.detail
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function readFieldErrors(body: unknown): Record<string, string> {
+  if (!isObject(body) || !isObject(body.errors)) {
+    return {}
   }
 
-  return `Request failed (${status}). Check that the backend is running.`
+  return Object.fromEntries(
+    Object.entries(body.errors).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  )
+}
+
+function describeError(
+  body: unknown,
+  status: number,
+  fieldErrors: Record<string, string>,
+): string {
+  const messages = Object.entries(fieldErrors).map(
+    ([field, message]) => `${field}: ${message}`,
+  )
+
+  if (messages.length > 0) {
+    return messages.join(' · ')
+  }
+
+  if (isObject(body) && typeof body.detail === 'string') {
+    return body.detail
+  }
+
+  return `Request failed (${status}). Please try again.`
 }
 
 async function request<T>(
@@ -62,10 +100,18 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    throw new Error(describeError(body, response.status))
+    const fieldErrors = readFieldErrors(body)
+
+    throw new ApiError(
+      describeError(body, response.status, fieldErrors),
+      response.status,
+      fieldErrors,
+    )
   }
 
-  if (body === null) throw new Error('The server returned an empty response.')
+  if (body === null) {
+    throw new Error('The server returned an empty response.')
+  }
 
   return body as T
 }
@@ -81,8 +127,13 @@ export function listFarmers(
     size: '10',
   })
 
-  if (query) parameters.set('q', query)
-  if (district) parameters.set('district', district)
+  if (query) {
+    parameters.set('q', query)
+  }
+
+  if (district) {
+    parameters.set('district', district)
+  }
 
   return request<FarmerPage>(
     `/api/v1/farmers/search?${parameters.toString()}`,
@@ -95,7 +146,35 @@ export function createFarmer(
 ): Promise<Farmer> {
   return request<Farmer>('/api/v1/farmers', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(farmer),
   })
+}
+
+export function getFarmer(
+  id: string,
+  signal?: AbortSignal,
+): Promise<Farmer> {
+  return request<Farmer>(
+    `/api/v1/farmers/${encodeURIComponent(id)}`,
+    { signal },
+  )
+}
+
+export function updateFarmer(
+  id: string,
+  farmer: UpdateFarmerRequest,
+): Promise<Farmer> {
+  return request<Farmer>(
+    `/api/v1/farmers/${encodeURIComponent(id)}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(farmer),
+    },
+  )
 }

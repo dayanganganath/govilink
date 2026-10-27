@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { createFarmer, listFarmers } from './api'
-import type { CreateFarmerRequest, FarmerPage } from './api'
+import type { CreateFarmerRequest, Farmer, FarmerPage } from './api'
+import FarmerDetailsPanel from './FarmerDetailsPanel'
 
 const emptyForm: CreateFarmerRequest = {
   fullName: '',
@@ -10,25 +11,54 @@ const emptyForm: CreateFarmerRequest = {
   village: '',
 }
 
+const createFields: {
+  name: keyof CreateFarmerRequest
+  label: string
+  placeholder: string
+  maxLength: number
+  required: boolean
+}[] = [
+  {
+    name: 'fullName',
+    label: 'Full name',
+    placeholder: 'Farmer’s full name',
+    maxLength: 150,
+    required: true,
+  },
+  {
+    name: 'phone',
+    label: 'Phone',
+    placeholder: 'Contact number',
+    maxLength: 20,
+    required: true,
+  },
+  {
+    name: 'district',
+    label: 'District',
+    placeholder: 'e.g. Matale',
+    maxLength: 100,
+    required: true,
+  },
+  {
+    name: 'village',
+    label: 'Village',
+    placeholder: 'Village or locality',
+    maxLength: 150,
+    required: false,
+  },
+]
+
 function errorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : 'Something went wrong. Please try again.'
+  return error instanceof Error ? error.message : 'Something went wrong.'
 }
 
 function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase()
+  return name.trim().split(/\s+/).slice(0, 2)
+    .map((part) => part[0]).join('').toUpperCase()
 }
 
 function displayDate(value: string): string {
   const date = new Date(value)
-
   return Number.isNaN(date.getTime())
     ? '—'
     : new Intl.DateTimeFormat('en-GB', {
@@ -45,7 +75,6 @@ export default function App() {
     page: 0,
     revision: 0,
   })
-
   const [queryInput, setQueryInput] = useState('')
   const [districtInput, setDistrictInput] = useState('')
   const [data, setData] = useState<FarmerPage | null>(null)
@@ -55,16 +84,12 @@ export default function App() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [success, setSuccess] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
 
-    listFarmers(
-      filters.page,
-      filters.query,
-      filters.district,
-      controller.signal,
-    )
+    listFarmers(filters.page, filters.query, filters.district, controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return
         setData(result)
@@ -84,7 +109,6 @@ export default function App() {
     event.preventDefault()
     setLoading(true)
     setListError('')
-
     setFilters((current) => ({
       query: queryInput.trim(),
       district: districtInput.trim(),
@@ -108,8 +132,15 @@ export default function App() {
     setFilters((current) => ({ ...current, page }))
   }
 
-  function updateField(field: keyof CreateFarmerRequest, value: string) {
-    setForm((current) => ({ ...current, [field]: value }))
+  function handleUpdated(farmer: Farmer) {
+    setSuccess(`${farmer.fullName} was updated successfully.`)
+    setLoading(true)
+    setListError('')
+    setFilters((current) => ({
+      ...current,
+      page: 0,
+      revision: current.revision + 1,
+    }))
   }
 
   async function saveFarmer(event: FormEvent<HTMLFormElement>) {
@@ -134,7 +165,6 @@ export default function App() {
       setDistrictInput('')
       setLoading(true)
       setListError('')
-
       setFilters((current) => ({
         query: '',
         district: '',
@@ -162,8 +192,7 @@ export default function App() {
         <p className="sidebar-label">WORKSPACE</p>
         <nav aria-label="Main navigation">
           <a className="nav-link selected" href="/" aria-current="page">
-            <span aria-hidden="true">◈</span>
-            Farmers
+            <span aria-hidden="true">◈</span> Farmers
           </a>
         </nav>
 
@@ -174,8 +203,7 @@ export default function App() {
         </div>
 
         <div className="sidebar-footer">
-          <span className="status-dot" />
-          Local development
+          <span className="status-dot" /> Local development
         </div>
       </aside>
 
@@ -193,7 +221,6 @@ export default function App() {
               Keep farmer details organised and find the right contact.
             </p>
           </div>
-
           <button
             className="button button-secondary"
             type="button"
@@ -210,13 +237,11 @@ export default function App() {
             <strong>{showResults ? data.totalElements : '—'}</strong>
             <small>Across all matching pages</small>
           </article>
-
           <article className="stat-card">
             <span>Active on this page</span>
             <strong>{showResults ? activeOnPage : '—'}</strong>
             <small>Active farmer records shown below</small>
           </article>
-
           <article className="stat-card stat-accent">
             <span>Directory page</span>
             <strong>
@@ -229,18 +254,14 @@ export default function App() {
         </section>
 
         {success && (
-          <div className="notice notice-success" role="status">
-            {success}
-          </div>
+          <div className="notice notice-success" role="status">{success}</div>
         )}
 
         <div className="workspace-grid">
           <section className="panel directory-panel" aria-labelledby="directory-title">
             <div className="panel-heading">
-              <div>
-                <h2 id="directory-title">Your farmer network</h2>
-                <p>Search by name, phone or village.</p>
-              </div>
+              <h2 id="directory-title">Your farmer network</h2>
+              <p>Search by name, phone or village.</p>
             </div>
 
             <form className="search-form" onSubmit={search}>
@@ -254,7 +275,6 @@ export default function App() {
                   maxLength={150}
                 />
               </div>
-
               <div className="field district-filter">
                 <label htmlFor="district-filter">District</label>
                 <input
@@ -265,10 +285,7 @@ export default function App() {
                   maxLength={100}
                 />
               </div>
-
-              <button className="button button-primary" type="submit">
-                Search
-              </button>
+              <button className="button button-primary" type="submit">Search</button>
             </form>
 
             {listError && (
@@ -289,12 +306,13 @@ export default function App() {
                     <th scope="col">Location</th>
                     <th scope="col">Status</th>
                     <th scope="col">Added</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading && (
                     <tr>
-                      <td colSpan={4} className="table-message" role="status">
+                      <td colSpan={5} className="table-message" role="status">
                         Loading your farmer network…
                       </td>
                     </tr>
@@ -302,7 +320,7 @@ export default function App() {
 
                   {showResults && data.content.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="table-message">
+                      <td colSpan={5} className="table-message">
                         <strong>No farmers found</strong>
                         <span>Try another search or add your first farmer.</span>
                       </td>
@@ -332,6 +350,16 @@ export default function App() {
                         </span>
                       </td>
                       <td className="date-cell">{displayDate(farmer.createdAt)}</td>
+                      <td>
+                        <button
+                          className="button button-secondary button-small"
+                          type="button"
+                          onClick={() => setSelectedId(farmer.id)}
+                          aria-label={`View and edit ${farmer.fullName}`}
+                        >
+                          View / edit
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -367,64 +395,33 @@ export default function App() {
 
           <section className="panel add-panel" aria-labelledby="add-title">
             <div className="panel-heading">
-              <div>
-                <span className="form-icon" aria-hidden="true">+</span>
-                <h2 id="add-title">Add a farmer</h2>
-                <p>Start with the essential contact details.</p>
-              </div>
+              <span className="form-icon" aria-hidden="true">+</span>
+              <h2 id="add-title">Add a farmer</h2>
+              <p>Start with the essential contact details.</p>
             </div>
 
             <form className="farmer-form" onSubmit={saveFarmer}>
               <fieldset disabled={saving}>
-                <div className="field">
-                  <label htmlFor="full-name">Full name *</label>
-                  <input
-                    id="full-name"
-                    value={form.fullName}
-                    onChange={(event) => updateField('fullName', event.target.value)}
-                    placeholder="Farmer’s full name"
-                    autoComplete="name"
-                    required
-                    maxLength={150}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="phone">Phone *</label>
-                  <input
-                    id="phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={(event) => updateField('phone', event.target.value)}
-                    placeholder="Contact number"
-                    autoComplete="tel"
-                    required
-                    maxLength={20}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="district">District *</label>
-                  <input
-                    id="district"
-                    value={form.district}
-                    onChange={(event) => updateField('district', event.target.value)}
-                    placeholder="e.g. Matale"
-                    required
-                    maxLength={100}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="village">Village <span>optional</span></label>
-                  <input
-                    id="village"
-                    value={form.village}
-                    onChange={(event) => updateField('village', event.target.value)}
-                    placeholder="Village or locality"
-                    maxLength={150}
-                  />
-                </div>
+                {createFields.map((field) => (
+                  <div className="field" key={field.name}>
+                    <label htmlFor={`create-${field.name}`}>
+                      {field.label}
+                      {field.required ? ' *' : <span>optional</span>}
+                    </label>
+                    <input
+                      id={`create-${field.name}`}
+                      type={field.name === 'phone' ? 'tel' : 'text'}
+                      value={form[field.name]}
+                      onChange={(event) => setForm((current) => ({
+                        ...current,
+                        [field.name]: event.target.value,
+                      }))}
+                      placeholder={field.placeholder}
+                      required={field.required}
+                      maxLength={field.maxLength}
+                    />
+                  </div>
+                ))}
 
                 {saveError && (
                   <div className="notice notice-error" role="alert">{saveError}</div>
@@ -434,9 +431,7 @@ export default function App() {
                   {saving ? 'Saving farmer…' : 'Add farmer'}
                 </button>
               </fieldset>
-              <p className="form-note">
-                Use fictional contact details while testing.
-              </p>
+              <p className="form-note">Use fictional contact details while testing.</p>
             </form>
           </section>
         </div>
@@ -446,6 +441,15 @@ export default function App() {
           <span>Portfolio project · In development</span>
         </footer>
       </main>
+
+      {selectedId && (
+        <FarmerDetailsPanel
+          key={selectedId}
+          farmerId={selectedId}
+          onClose={() => setSelectedId(null)}
+          onSaved={handleUpdated}
+        />
+      )}
     </div>
   )
 }
