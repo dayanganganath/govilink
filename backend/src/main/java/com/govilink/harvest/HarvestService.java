@@ -2,6 +2,7 @@ package com.govilink.harvest;
 
 import com.govilink.farmer.Farmer;
 import com.govilink.farmer.FarmerRepository;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -16,6 +17,10 @@ import java.util.UUID;
 @Service
 @Transactional(readOnly = true)
 public class HarvestService {
+
+    private static final String VERSION_CONFLICT =
+            "Harvest listing was changed by another request. "
+                    + "Reload the latest details and try again.";
 
     private final HarvestRepository repository;
     private final FarmerRepository farmerRepository;
@@ -65,12 +70,53 @@ public class HarvestService {
     }
 
     public HarvestDtos.Response getById(UUID id) {
-        return repository.findById(id)
-                .map(this::toResponse)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Harvest listing not found."
-                ));
+        return toResponse(findListing(id));
+    }
+
+    @Transactional
+    public HarvestDtos.Response updateStatus(
+            UUID id,
+            HarvestStatusRequest request
+    ) {
+        if (request.status() != HarvestStatus.SOLD
+                && request.status() != HarvestStatus.CANCELLED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Status must be SOLD or CANCELLED."
+            );
+        }
+
+        HarvestListing listing = findListing(id);
+
+        if (listing.getVersion() != request.version().longValue()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    VERSION_CONFLICT
+            );
+        }
+
+        if (listing.getStatus() != HarvestStatus.AVAILABLE) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Only an available harvest listing can be closed."
+            );
+        }
+
+        if (request.status() == HarvestStatus.SOLD) {
+            listing.markSold();
+        } else {
+            listing.cancel();
+        }
+
+        try {
+            return toResponse(repository.saveAndFlush(listing));
+        } catch (OptimisticLockingFailureException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    VERSION_CONFLICT,
+                    exception
+            );
+        }
     }
 
     public HarvestDtos.PageResponse list(
@@ -117,6 +163,14 @@ public class HarvestService {
                 result.hasNext(),
                 result.hasPrevious()
         );
+    }
+
+    private HarvestListing findListing(UUID id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Harvest listing not found."
+                ));
     }
 
     private HarvestDtos.Response toResponse(HarvestListing listing) {

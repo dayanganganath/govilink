@@ -85,6 +85,24 @@ public class HarvestListing {
         this.availableFrom = availableFrom;
     }
 
+    public void markSold() {
+        finish(HarvestStatus.SOLD);
+    }
+
+    public void cancel() {
+        finish(HarvestStatus.CANCELLED);
+    }
+
+    private void finish(HarvestStatus nextStatus) {
+        if (status != HarvestStatus.AVAILABLE) {
+            throw new IllegalStateException(
+                    "Only an available harvest listing can be closed."
+            );
+        }
+
+        status = nextStatus;
+    }
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();
