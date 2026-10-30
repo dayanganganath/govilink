@@ -15,6 +15,8 @@ vi.mock('./harvestApi', () => ({
   createHarvest: vi.fn(),
   listHarvests: vi.fn(),
   searchActiveFarmers: vi.fn(),
+  searchHarvests: vi.fn(),
+  updateHarvestStatus: vi.fn(),
 }))
 
 const createHarvestMock = vi.mocked(createHarvest)

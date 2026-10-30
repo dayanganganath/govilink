@@ -18,6 +18,12 @@ export interface HarvestListing {
 
 export type HarvestCloseStatus = 'SOLD' | 'CANCELLED'
 
+export interface HarvestFilterValues {
+  query: string
+  district: string
+  status: HarvestListing['status'] | ''
+}
+
 export interface HarvestPage {
   content: HarvestListing[]
   page: number
@@ -97,6 +103,26 @@ export function listHarvests(
 
   return request<HarvestPage>(
     `/api/v1/harvest-listings?${parameters}`,
+    { signal },
+  )
+}
+
+export function searchHarvests(
+  page: number,
+  filters: HarvestFilterValues,
+  signal: AbortSignal,
+): Promise<HarvestPage> {
+  const parameters = new URLSearchParams({
+    page: String(page),
+    size: '10',
+  })
+
+  if (filters.query) parameters.set('q', filters.query)
+  if (filters.district) parameters.set('district', filters.district)
+  if (filters.status) parameters.set('status', filters.status)
+
+  return request<HarvestPage>(
+    `/api/v1/harvest-listings/search?${parameters}`,
     { signal },
   )
 }

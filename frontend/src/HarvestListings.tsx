@@ -5,8 +5,14 @@ import {
   createHarvest,
   listHarvests,
   searchActiveFarmers,
+  searchHarvests,
 } from './harvestApi'
-import type { HarvestListing, HarvestPage } from './harvestApi'
+import type {
+  HarvestFilterValues,
+  HarvestListing,
+  HarvestPage,
+} from './harvestApi'
+import HarvestFilters from './HarvestFilters'
 import HarvestStatusActions from './HarvestStatusActions'
 import './HarvestListings.css'
 
@@ -167,6 +173,7 @@ function FarmerPicker({ selected, onSelect }: FarmerPickerProps) {
               {data.totalPages > 0 &&
                 ` · Page ${data.page + 1}/${data.totalPages}`}
             </span>
+
             <div className="page-buttons">
               <button
                 className="button button-secondary button-small"
@@ -177,6 +184,7 @@ function FarmerPicker({ selected, onSelect }: FarmerPickerProps) {
               >
                 Previous
               </button>
+
               <button
                 className="button button-secondary button-small"
                 type="button"
@@ -207,8 +215,19 @@ function FarmerPicker({ selected, onSelect }: FarmerPickerProps) {
   )
 }
 
+interface SearchState extends HarvestFilterValues {
+  page: number
+  revision: number
+}
+
 export default function HarvestListings() {
-  const [filters, setFilters] = useState({ page: 0, revision: 0 })
+  const [filters, setFilters] = useState<SearchState>({
+    query: '',
+    district: '',
+    status: '',
+    page: 0,
+    revision: 0,
+  })
   const [data, setData] = useState<HarvestPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [listError, setListError] = useState('')
@@ -219,10 +238,30 @@ export default function HarvestListings() {
   const [success, setSuccess] = useState('')
   const savingRef = useRef(false)
 
+  const hasFilters = Boolean(
+    filters.query || filters.district || filters.status,
+  )
+
   useEffect(() => {
     const controller = new AbortController()
 
-    listHarvests(filters.page, controller.signal)
+    const hasAppliedFilters = Boolean(
+      filters.query || filters.district || filters.status,
+    )
+
+    const request = hasAppliedFilters
+      ? searchHarvests(
+          filters.page,
+          {
+            query: filters.query,
+            district: filters.district,
+            status: filters.status,
+          },
+          controller.signal,
+        )
+      : listHarvests(filters.page, controller.signal)
+
+    request
       .then((result) => {
         if (controller.signal.aborted) return
         setData(result)
@@ -242,23 +281,29 @@ export default function HarvestListings() {
     setLoading(true)
     setListError('')
     setFilters((current) => ({
+      ...current,
       page,
       revision: current.revision + 1,
     }))
   }
 
-  function handleStatusChanged(updated: HarvestListing) {
-    setData((current) => current === null ? null : {
-      ...current,
-      content: current.content.map((listing) => (
-        listing.id === updated.id ? updated : listing
-      )),
-    })
+  function applyFilters(next: HarvestFilterValues) {
+    setLoading(true)
+    setListError('')
+    setSuccess('')
+    setFilters((current) => ({
+      ...next,
+      page: 0,
+      revision: current.revision + 1,
+    }))
+  }
 
+  function handleStatusChanged(updated: HarvestListing) {
     setSuccess(
       `${updated.cropName} listing for ${updated.farmerName} `
       + `was marked ${updated.status}.`,
     )
+    reload(0)
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -318,9 +363,11 @@ export default function HarvestListings() {
   }
 
   const ready = !loading && !listError && data !== null
+
   const numberFormat = new Intl.NumberFormat('en-LK', {
     maximumFractionDigits: 3,
   })
+
   const priceFormat = new Intl.NumberFormat('en-LK', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -333,9 +380,10 @@ export default function HarvestListings() {
           <p className="eyebrow">CONNECT HARVESTS TO OPPORTUNITIES</p>
           <h1>Harvest listings</h1>
           <p className="subtitle">
-            Record available produce, quantities and expected prices.
+            Find produce by crop, district and listing status.
           </p>
         </div>
+
         <button
           className="button button-secondary"
           type="button"
@@ -348,10 +396,11 @@ export default function HarvestListings() {
 
       <section className="stats-grid" aria-label="Harvest summary">
         <article className="stat-card">
-          <span>Total listings</span>
+          <span>Matching listings</span>
           <strong>{ready ? data.totalElements : '—'}</strong>
-          <small>Across all pages</small>
+          <small>Across all matching pages</small>
         </article>
+
         <article className="stat-card">
           <span>Available on this page</span>
           <strong>
@@ -361,6 +410,7 @@ export default function HarvestListings() {
           </strong>
           <small>Listings shown below</small>
         </article>
+
         <article className="stat-card stat-accent">
           <span>Listings page</span>
           <strong>
@@ -373,7 +423,14 @@ export default function HarvestListings() {
       </section>
 
       {success && (
-        <div className="notice notice-success" role="status">{success}</div>
+        <div className="notice notice-success" role="status">
+          {success}
+          {hasFilters && (
+            <span className="harvest-success-note">
+              Current filters remain applied.
+            </span>
+          )}
+        </div>
       )}
 
       <div className="workspace-grid">
@@ -382,6 +439,18 @@ export default function HarvestListings() {
             <h2 id="harvest-list-title">Recorded harvests</h2>
             <p>Newest listings first. Quantities are in kilograms.</p>
           </div>
+
+          <HarvestFilters busy={loading} onApply={applyFilters} />
+
+          <p className="harvest-filter-summary">
+            {hasFilters
+              ? [
+                  filters.query && `Crop contains: ${filters.query}`,
+                  filters.district && `District: ${filters.district}`,
+                  filters.status && `Status: ${filters.status}`,
+                ].filter(Boolean).join(' · ')
+              : 'Showing all listings'}
+          </p>
 
           {listError && (
             <div className="notice notice-error directory-error" role="alert">
@@ -408,6 +477,7 @@ export default function HarvestListings() {
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {loading && (
                   <tr>
@@ -420,8 +490,16 @@ export default function HarvestListings() {
                 {ready && data.content.length === 0 && (
                   <tr>
                     <td colSpan={6} className="table-message">
-                      <strong>No harvest listings yet</strong>
-                      <span>Add the first listing using the form.</span>
+                      <strong>
+                        {hasFilters
+                          ? 'No matching harvest listings'
+                          : 'No harvest listings yet'}
+                      </strong>
+                      <span>
+                        {hasFilters
+                          ? 'Try another search or clear the filters.'
+                          : 'Add the first listing using the form.'}
+                      </span>
                     </td>
                   </tr>
                 )}
@@ -434,13 +512,17 @@ export default function HarvestListings() {
                         {listing.farmerName} · {listing.district}
                       </span>
                     </td>
+
                     <td>{numberFormat.format(listing.quantityKg)} kg</td>
+
                     <td>
                       {listing.expectedPricePerKg === null
                         ? 'Not specified'
                         : priceFormat.format(listing.expectedPricePerKg)}
                     </td>
+
                     <td>{listing.availableFrom}</td>
+
                     <td>
                       <span
                         className={`status-badge ${
@@ -450,6 +532,7 @@ export default function HarvestListings() {
                         {listing.status}
                       </span>
                     </td>
+
                     <td className="harvest-action-cell">
                       <HarvestStatusActions
                         listing={listing}
@@ -469,6 +552,7 @@ export default function HarvestListings() {
                 ? `${data.content.length} of ${data.totalElements} listings`
                 : 'Harvest results'}
             </span>
+
             <div className="page-buttons">
               <button
                 type="button"
@@ -478,6 +562,7 @@ export default function HarvestListings() {
               >
                 Previous
               </button>
+
               <button
                 type="button"
                 className="button button-secondary button-small"
