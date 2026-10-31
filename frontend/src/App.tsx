@@ -1,18 +1,38 @@
 import { useState } from 'react'
 import FarmerDirectory from './FarmerDirectory'
 import HarvestListings from './HarvestListings'
+import BuyerRequests from './BuyerRequests'
 import './HarvestListings.css'
 
-type Page = 'farmers' | 'harvests'
+type Page = 'farmers' | 'harvests' | 'buyers'
+
+const navigation: {
+  id: Page
+  label: string
+  icon: string
+}[] = [
+  { id: 'farmers', label: 'Farmers', icon: '◈' },
+  { id: 'harvests', label: 'Harvest listings', icon: '↗' },
+  { id: 'buyers', label: 'Buyer requests', icon: '◇' },
+]
 
 export default function App() {
   const [page, setPage] = useState<Page>('farmers')
-  const [harvestVisited, setHarvestVisited] = useState(false)
+  const [visited, setVisited] = useState<Record<Page, boolean>>({
+    farmers: true,
+    harvests: false,
+    buyers: false,
+  })
 
   function navigate(next: Page) {
-    if (next === 'harvests') setHarvestVisited(true)
+    setVisited((current) => current[next]
+      ? current
+      : { ...current, [next]: true })
+
     setPage(next)
   }
+
+  const currentLabel = navigation.find((item) => item.id === page)?.label
 
   return (
     <div className="app-shell">
@@ -25,31 +45,24 @@ export default function App() {
         <p className="sidebar-label">WORKSPACE</p>
 
         <nav className="workspace-nav" aria-label="Main navigation">
-          <button
-            className={`nav-link ${page === 'farmers' ? 'selected' : ''}`}
-            type="button"
-            aria-current={page === 'farmers' ? 'page' : undefined}
-            onClick={() => navigate('farmers')}
-          >
-            <span aria-hidden="true">◈</span>
-            Farmers
-          </button>
-
-          <button
-            className={`nav-link ${page === 'harvests' ? 'selected' : ''}`}
-            type="button"
-            aria-current={page === 'harvests' ? 'page' : undefined}
-            onClick={() => navigate('harvests')}
-          >
-            <span aria-hidden="true">↗</span>
-            Harvest listings
-          </button>
+          {navigation.map((item) => (
+            <button
+              key={item.id}
+              className={`nav-link ${page === item.id ? 'selected' : ''}`}
+              type="button"
+              aria-current={page === item.id ? 'page' : undefined}
+              onClick={() => navigate(item.id)}
+            >
+              <span aria-hidden="true">{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
         </nav>
 
         <div className="sidebar-note">
           <span className="small-leaf" aria-hidden="true">↗</span>
           <strong>Better connections.<br />Better coordination.</strong>
-          <p>Keep farmer contacts and available harvests together.</p>
+          <p>Keep farmer contacts, harvests and buyer demand together.</p>
         </div>
 
         <div className="sidebar-footer">
@@ -62,9 +75,7 @@ export default function App() {
         <header className="topbar">
           <span>
             Workspace
-            <span className="breadcrumb">
-              / {page === 'farmers' ? 'Farmers' : 'Harvest listings'}
-            </span>
+            <span className="breadcrumb">/ {currentLabel}</span>
           </span>
           <span className="workspace-badge">Development workspace</span>
         </header>
@@ -73,9 +84,15 @@ export default function App() {
           <FarmerDirectory />
         </div>
 
-        {harvestVisited && (
+        {visited.harvests && (
           <div hidden={page !== 'harvests'}>
             <HarvestListings />
+          </div>
+        )}
+
+        {visited.buyers && (
+          <div hidden={page !== 'buyers'}>
+            <BuyerRequests />
           </div>
         )}
 

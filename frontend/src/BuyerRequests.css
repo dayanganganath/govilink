@@ -1,0 +1,18 @@
+.buyer-field-error {
+  margin: 7px 0 0;
+  color: #984629;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.buyer-form input[aria-invalid="true"] {
+  border-color: #bf7056;
+}
+
+.buyer-form .notice {
+  white-space: normal;
+}
+
+.buyer-form input[type="date"] {
+  min-width: 0;
+}
