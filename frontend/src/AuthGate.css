@@ -1,0 +1,138 @@
+.auth-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    radial-gradient(ellipse at top left, #e5efdc, transparent 60%),
+    #f5f7f3;
+}
+
+.auth-card {
+  width: min(100%, 460px);
+  padding: 40px;
+  border: 1px solid #dce5d6;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 18px 60px #153b2d0d;
+}
+
+.auth-brand {
+  color: #153b2d;
+  font: 800 28px 'Manrope', sans-serif;
+  margin-bottom: 32px;
+}
+
+.auth-eyebrow {
+  color: #637a4f;
+  font-size: 11px;
+  letter-spacing: .16em;
+}
+
+.auth-card h1 {
+  font: 800 30px 'Manrope', sans-serif;
+  margin: 12px 0;
+}
+
+.auth-intro,
+.auth-note {
+  color: #66756a;
+  line-height: 1.7;
+}
+
+.auth-intro {
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.auth-note {
+  font-size: 12px;
+  margin: 22px 0 0;
+}
+
+.auth-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.auth-fields label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.auth-fields input {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #cdd9c8;
+  border-radius: 8px;
+  background: #fbfcfa;
+  margin-bottom: 10px;
+}
+
+.auth-button {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: #204d37;
+  color: white;
+  padding: 14px 18px;
+  font-weight: 700;
+}
+
+.auth-message,
+.session-message {
+  color: #813c22;
+  background: #fff3e9;
+  padding: 13px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 28px;
+  background: #153b2d;
+  color: #f1f6ec;
+}
+
+.session-bar strong {
+  font-size: 13px;
+}
+
+.session-email {
+  display: block;
+  color: #c7d7bf;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.session-signout {
+  flex-shrink: 0;
+  border: 1px solid #87a181;
+  border-radius: 7px;
+  background: transparent;
+  color: white;
+  padding: 9px 15px;
+}
+
+.session-message {
+  margin: 12px 24px;
+}
+
+@media (max-width: 520px) {
+  .auth-card {
+    padding: 28px 22px;
+  }
+
+  .session-bar {
+    padding: 12px 16px;
+  }
+}
