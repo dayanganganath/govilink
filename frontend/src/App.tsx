@@ -2,9 +2,10 @@ import { useState } from 'react'
 import FarmerDirectory from './FarmerDirectory'
 import HarvestListings from './HarvestListings'
 import BuyerRequests from './BuyerRequests'
+import Quotations from './Quotations'
 import './HarvestListings.css'
 
-type Page = 'farmers' | 'harvests' | 'buyers'
+type Page = 'farmers' | 'harvests' | 'buyers' | 'quotes'
 
 const navigation: {
   id: Page
@@ -14,14 +15,17 @@ const navigation: {
   { id: 'farmers', label: 'Farmers', icon: '◈' },
   { id: 'harvests', label: 'Harvest listings', icon: '↗' },
   { id: 'buyers', label: 'Buyer requests', icon: '◇' },
+  { id: 'quotes', label: 'Quotations', icon: '▤' },
 ]
 
 export default function App() {
   const [page, setPage] = useState<Page>('farmers')
+
   const [visited, setVisited] = useState<Record<Page, boolean>>({
     farmers: true,
     harvests: false,
     buyers: false,
+    quotes: false,
   })
 
   function navigate(next: Page) {
@@ -32,14 +36,18 @@ export default function App() {
     setPage(next)
   }
 
-  const currentLabel = navigation.find((item) => item.id === page)?.label
+  const currentLabel = navigation.find(
+    (item) => item.id === page,
+  )?.label
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <a className="brand" href="/" aria-label="GoviLink home">
           <span className="brand-mark">G</span>
-          <span>GoviLink<span className="brand-dot">.</span></span>
+          <span>
+            GoviLink<span className="brand-dot">.</span>
+          </span>
         </a>
 
         <p className="sidebar-label">WORKSPACE</p>
@@ -61,8 +69,12 @@ export default function App() {
 
         <div className="sidebar-note">
           <span className="small-leaf" aria-hidden="true">↗</span>
-          <strong>Better connections.<br />Better coordination.</strong>
-          <p>Keep farmer contacts, harvests and buyer demand together.</p>
+          <strong>
+            Better connections.<br />Better coordination.
+          </strong>
+          <p>
+            Keep farmer contacts, harvests and buyer demand together.
+          </p>
         </div>
 
         <div className="sidebar-footer">
@@ -77,7 +89,9 @@ export default function App() {
             Workspace
             <span className="breadcrumb">/ {currentLabel}</span>
           </span>
-          <span className="workspace-badge">Development workspace</span>
+          <span className="workspace-badge">
+            Development workspace
+          </span>
         </header>
 
         <div hidden={page !== 'farmers'}>
@@ -96,9 +110,17 @@ export default function App() {
           </div>
         )}
 
+        {visited.quotes && (
+          <div hidden={page !== 'quotes'}>
+            <Quotations />
+          </div>
+        )}
+
         <footer className="page-footer">
-          <span>GoviLink · Farmer collection & sales coordination</span>
-          <span>Portfolio project · In development</span>
+          <span>
+            GoviLink · Farmer collection & sales coordination
+          </span>
+          <span>Managed coordination · In development</span>
         </footer>
       </main>
     </div>
