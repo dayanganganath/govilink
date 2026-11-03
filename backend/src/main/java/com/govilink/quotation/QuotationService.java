@@ -3,13 +3,18 @@ package com.govilink.quotation;
 import com.govilink.buyerrequest.BuyerRequestRepository;
 import com.govilink.buyerrequest.BuyerRequestStatus;
 import com.govilink.harvest.HarvestRepository;
+import com.govilink.identity.AppUser;
 import com.govilink.identity.AppUserRepository;
 import com.govilink.identity.UserRole;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.UUID;
 
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,25 +45,7 @@ public class QuotationService {
             QuotationDtos.CreateDraft request,
             String staffEmail
     ) {
-        var actor = users.findByEmailIgnoreCase(staffEmail)
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.UNAUTHORIZED
-                        )
-                );
-
-        boolean staffRole = actor.getRoles().stream()
-                .anyMatch(role ->
-                        role == UserRole.ADMIN
-                                || role == UserRole.COORDINATOR
-                );
-
-        if (!actor.isActive() || !staffRole) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "Active staff access is required."
-            );
-        }
+        AppUser actor = requireStaff(staffEmail);
 
         var buyer = buyers.findById(request.buyerRequestId())
                 .orElseThrow(() ->
@@ -127,6 +114,72 @@ public class QuotationService {
         );
     }
 
+    @Transactional
+    public QuotationDtos.Response issue(
+            UUID id,
+            QuotationDtos.IssueRequest request,
+            String staffEmail
+    ) {
+        AppUser actor = requireStaff(staffEmail);
+
+        Quotation quotation = quotations.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Quotation not found."
+                        )
+                );
+
+        if (quotation.getVersion() != request.version()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Quotation has changed. Reload and review it again."
+            );
+        }
+
+        var confirmed = new HashSet<>(
+                request.confirmedLineIds()
+        );
+
+        if (confirmed.size() != request.confirmedLineIds().size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Each quotation line may be confirmed only once."
+            );
+        }
+
+        try {
+            quotation.issue(
+                    actor,
+                    Instant.now().truncatedTo(ChronoUnit.MICROS),
+                    request.expiresAt().truncatedTo(ChronoUnit.MICROS),
+                    confirmed
+            );
+
+            return response(
+                    quotations.saveAndFlush(quotation)
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    exception.getMessage(),
+                    exception
+            );
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    exception.getMessage(),
+                    exception
+            );
+        } catch (OptimisticLockingFailureException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Quotation has changed. Reload and review it again.",
+                    exception
+            );
+        }
+    }
+
     @Transactional(readOnly = true)
     public QuotationDtos.Response getById(UUID id) {
         Quotation quotation = quotations.findById(id)
@@ -138,6 +191,36 @@ public class QuotationService {
                 );
 
         return response(quotation);
+    }
+
+    private AppUser requireStaff(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED
+            );
+        }
+
+        AppUser actor = users.findByEmailIgnoreCase(email)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED
+                        )
+                );
+
+        boolean staffRole = actor.getRoles().stream()
+                .anyMatch(role ->
+                        role == UserRole.ADMIN
+                                || role == UserRole.COORDINATOR
+                );
+
+        if (!actor.isActive() || !staffRole) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Active staff access is required."
+            );
+        }
+
+        return actor;
     }
 
     private QuotationDtos.Response response(
@@ -166,6 +249,10 @@ public class QuotationService {
         boolean confirmationNeeded = lines.stream()
                 .anyMatch(line -> !line.priceConfirmed());
 
+        UUID issuedBy = quotation.getIssuedBy() == null
+                ? null
+                : quotation.getIssuedBy().getId();
+
         return new QuotationDtos.Response(
                 quotation.getId(),
                 quotation.getBuyerRequest().getId(),
@@ -186,6 +273,9 @@ public class QuotationService {
                 quotation.getVersion(),
                 quotation.getCreatedAt(),
                 quotation.getUpdatedAt(),
+                issuedBy,
+                quotation.getIssuedAt(),
+                quotation.getExpiresAt(),
                 lines
         );
     }

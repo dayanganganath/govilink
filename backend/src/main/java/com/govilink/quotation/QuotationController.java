@@ -45,6 +45,25 @@ public class QuotationController {
                 .body(response);
     }
 
+    @PostMapping("/{id}/issue")
+    public QuotationDtos.Response issue(
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody QuotationDtos.IssueRequest request,
+            Authentication authentication
+    ) {
+        if (authentication == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED
+            );
+        }
+
+        return service.issue(
+                id,
+                request,
+                authentication.getName()
+        );
+    }
+
     @GetMapping("/{id}")
     public QuotationDtos.Response getById(
             @PathVariable("id") UUID id

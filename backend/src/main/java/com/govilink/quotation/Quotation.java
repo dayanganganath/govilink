@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -74,11 +75,22 @@ public class Quotation {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "issued_by")
+    private AppUser issuedBy;
+
+    @Column(name = "issued_at")
+    private Instant issuedAt;
+
     @Version
     @Column(nullable = false)
     private long version;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(
+            name = "created_at",
+            nullable = false,
+            updatable = false
+    )
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
@@ -86,7 +98,10 @@ public class Quotation {
 
     @OneToMany(
             mappedBy = "quotation",
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE}
+            cascade = {
+                    CascadeType.PERSIST,
+                    CascadeType.MERGE
+            }
     )
     @OrderBy("lineNumber ASC")
     private List<QuotationLine> lines = new ArrayList<>();
@@ -111,7 +126,8 @@ public class Quotation {
                 "Staff account is required."
         );
 
-        if (buyerRequest.getId() == null || createdBy.getId() == null) {
+        if (buyerRequest.getId() == null
+                || createdBy.getId() == null) {
             throw new IllegalArgumentException(
                     "Saved buyer request and staff account are required."
             );
@@ -153,9 +169,10 @@ public class Quotation {
             );
         }
 
-        this.deliveryAddress = address == null || address.isEmpty()
-                ? null
-                : address;
+        this.deliveryAddress =
+                address == null || address.isEmpty()
+                        ? null
+                        : address;
     }
 
     public void addLine(
@@ -170,7 +187,10 @@ public class Quotation {
             );
         }
 
-        Objects.requireNonNull(harvest, "Harvest listing is required.");
+        Objects.requireNonNull(
+                harvest,
+                "Harvest listing is required."
+        );
 
         if (harvest.getId() == null) {
             throw new IllegalArgumentException(
@@ -184,9 +204,12 @@ public class Quotation {
             );
         }
 
-        boolean duplicate = lines.stream().anyMatch(line ->
-                line.getHarvestListing().getId().equals(harvest.getId())
-        );
+        boolean duplicate = lines.stream()
+                .anyMatch(line ->
+                        line.getHarvestListing()
+                                .getId()
+                                .equals(harvest.getId())
+                );
 
         if (duplicate) {
             throw new IllegalArgumentException(
@@ -203,16 +226,42 @@ public class Quotation {
                 priceConfirmed
         );
 
-        BigDecimal nextQuantity = getQuantityKg()
+        BigDecimal totalQuantity = getQuantityKg()
                 .add(line.getQuantityKg());
 
-        if (nextQuantity.compareTo(buyerRequest.getQuantityKg()) > 0) {
+        if (totalQuantity.compareTo(
+                buyerRequest.getQuantityKg()
+        ) > 0) {
             throw new IllegalArgumentException(
                     "Quoted quantity exceeds the buyer request."
             );
         }
 
         lines.add(line);
+    }
+
+    public void issue(
+            AppUser issuer,
+            Instant now,
+            Instant expiresAt,
+            Set<UUID> confirmedLineIds
+    ) {
+        QuotationIssuancePolicy.validate(
+                this,
+                issuer,
+                now,
+                expiresAt,
+                confirmedLineIds
+        );
+
+        for (QuotationLine line : lines) {
+            line.confirmPrice();
+        }
+
+        this.issuedBy = issuer;
+        this.issuedAt = now;
+        this.expiresAt = expiresAt;
+        this.status = QuotationStatus.ISSUED;
     }
 
     private static BigDecimal fee(
@@ -261,13 +310,19 @@ public class Quotation {
     public BigDecimal getQuantityKg() {
         return lines.stream()
                 .map(QuotationLine::getQuantityKg)
-                .reduce(new BigDecimal("0.000"), BigDecimal::add);
+                .reduce(
+                        new BigDecimal("0.000"),
+                        BigDecimal::add
+                );
     }
 
     public BigDecimal getProduceSubtotal() {
         return lines.stream()
                 .map(QuotationLine::getLineSubtotal)
-                .reduce(new BigDecimal("0.00"), BigDecimal::add);
+                .reduce(
+                        new BigDecimal("0.00"),
+                        BigDecimal::add
+                );
     }
 
     public BigDecimal getTotal() {
@@ -276,22 +331,77 @@ public class Quotation {
                 .add(deliveryFee);
     }
 
-    public UUID getId() { return id; }
-    public BuyerRequest getBuyerRequest() { return buyerRequest; }
-    public AppUser getCreatedBy() { return createdBy; }
-    public String getBuyerName() { return buyerName; }
-    public String getBuyerPhone() { return buyerPhone; }
-    public String getDistrict() { return district; }
-    public LocalDate getRequiredBy() { return requiredBy; }
-    public String getDeliveryAddress() { return deliveryAddress; }
-    public String getCurrency() { return currency; }
-    public BigDecimal getServiceFee() { return serviceFee; }
-    public BigDecimal getDeliveryFee() { return deliveryFee; }
-    public QuotationStatus getStatus() { return status; }
-    public Instant getExpiresAt() { return expiresAt; }
-    public long getVersion() { return version; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public UUID getId() {
+        return id;
+    }
+
+    public BuyerRequest getBuyerRequest() {
+        return buyerRequest;
+    }
+
+    public AppUser getCreatedBy() {
+        return createdBy;
+    }
+
+    public String getBuyerName() {
+        return buyerName;
+    }
+
+    public String getBuyerPhone() {
+        return buyerPhone;
+    }
+
+    public String getDistrict() {
+        return district;
+    }
+
+    public LocalDate getRequiredBy() {
+        return requiredBy;
+    }
+
+    public String getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public BigDecimal getServiceFee() {
+        return serviceFee;
+    }
+
+    public BigDecimal getDeliveryFee() {
+        return deliveryFee;
+    }
+
+    public QuotationStatus getStatus() {
+        return status;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public AppUser getIssuedBy() {
+        return issuedBy;
+    }
+
+    public Instant getIssuedAt() {
+        return issuedAt;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 
     public List<QuotationLine> getLines() {
         return List.copyOf(lines);

@@ -56,6 +56,21 @@ public final class QuotationDtos {
     ) {
     }
 
+    public record IssueRequest(
+            @NotNull
+            @PositiveOrZero
+            Long version,
+
+            @NotNull
+            @Future
+            Instant expiresAt,
+
+            @NotNull
+            @Size(min = 1, max = 50)
+            List<@NotNull UUID> confirmedLineIds
+    ) {
+    }
+
     public record Response(
             UUID id,
             UUID buyerRequestId,
@@ -76,6 +91,9 @@ public final class QuotationDtos {
             long version,
             Instant createdAt,
             Instant updatedAt,
+            UUID issuedBy,
+            Instant issuedAt,
+            Instant expiresAt,
             List<LineResponse> lines
     ) {
     }
