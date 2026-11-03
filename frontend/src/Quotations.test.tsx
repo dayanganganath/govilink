@@ -6,16 +6,27 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import Quotations from './Quotations'
+
 import { listBuyerRequests } from './buyerApi'
-import type { BuyerRequest, BuyerRequestPage } from './buyerApi'
+import type {
+  BuyerRequest,
+  BuyerRequestPage,
+} from './buyerApi'
+
 import { searchHarvests } from './harvestApi'
-import type { HarvestListing, HarvestPage } from './harvestApi'
+import type {
+  HarvestListing,
+  HarvestPage,
+} from './harvestApi'
+
 import {
   createQuotationDraft,
   getQuotation,
 } from './quotationApi'
 import type { Quotation } from './quotationApi'
+
 import { ApiError } from './http'
 
 vi.mock('./buyerApi', () => ({
@@ -29,6 +40,7 @@ vi.mock('./harvestApi', () => ({
 vi.mock('./quotationApi', () => ({
   createQuotationDraft: vi.fn(),
   getQuotation: vi.fn(),
+  issueQuotation: vi.fn(),
 }))
 
 const buyersMock = vi.mocked(listBuyerRequests)
@@ -94,6 +106,9 @@ const quote: Quotation = {
   version: 0,
   createdAt: '',
   updatedAt: '',
+  issuedBy: null,
+  issuedAt: null,
+  expiresAt: null,
   lines: [
     {
       id: 'line-1',
@@ -172,11 +187,14 @@ async function start() {
   return user
 }
 
-async function fees(user: ReturnType<typeof userEvent.setup>) {
+async function fees(
+  user: ReturnType<typeof userEvent.setup>,
+) {
   await user.type(
     screen.getByLabelText('Service fee — LKR'),
     '4500',
   )
+
   await user.type(
     screen.getByLabelText('Delivery fee — LKR'),
     '2500',
@@ -185,6 +203,7 @@ async function fees(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(() => {
   vi.resetAllMocks()
+
   buyersMock.mockResolvedValue(buyers())
   sourcesMock.mockResolvedValue(sources())
   createMock.mockResolvedValue(quote)
@@ -216,26 +235,42 @@ describe('Quotations', () => {
     const user = await start()
 
     await user.click(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
-    )
-    await user.click(
-      screen.getByRole('button', { name: 'Add source Second Farmer' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     )
 
-    expect(screen.getByLabelText('Quantity kg — source 1'))
-      .toHaveValue(300)
-    expect(screen.getByLabelText('Quantity kg — source 2'))
-      .toHaveValue(200)
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Add source Second Farmer',
+      }),
+    )
+
+    expect(
+      screen.getByLabelText('Quantity kg — source 1'),
+    ).toHaveValue(300)
+
+    expect(
+      screen.getByLabelText('Quantity kg — source 2'),
+    ).toHaveValue(200)
 
     await user.click(
-      screen.getByLabelText('Price agreed with farmer — source 1'),
+      screen.getByLabelText(
+        'Price agreed with farmer — source 1',
+      ),
     )
+
     await fees(user)
+
     await user.click(
-      screen.getByRole('button', { name: 'Save draft quotation' }),
+      screen.getByRole('button', {
+        name: 'Save draft quotation',
+      }),
     )
 
-    await waitFor(() => expect(createMock).toHaveBeenCalledOnce())
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledOnce()
+    })
 
     expect(createMock).toHaveBeenCalledWith({
       buyerRequestId: buyer.id,
@@ -258,129 +293,209 @@ describe('Quotations', () => {
       ],
     })
 
-    expect(await screen.findByText('Quotation DRAFT'))
-      .toBeInTheDocument()
-    expect(screen.getByText(/97,000\.00/)).toBeInTheDocument()
-    expect(screen.getByText('quote-1')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Quotation DRAFT'),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByText(/97,000\.00/),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByText('quote-1'),
+    ).toBeInTheDocument()
   })
 
   it('requires explicit fees and prevents duplicate source selection', async () => {
     const user = await start()
 
     await user.click(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     )
 
     expect(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     ).toBeDisabled()
 
     await user.click(
-      screen.getByRole('button', { name: 'Save draft quotation' }),
+      screen.getByRole('button', {
+        name: 'Save draft quotation',
+      }),
     )
 
-    expect(screen.getByRole('alert'))
-      .toHaveTextContent('Enter valid service and delivery fees')
+    expect(
+      screen.getByRole('alert'),
+    ).toHaveTextContent(
+      'Enter valid service and delivery fees',
+    )
+
     expect(createMock).not.toHaveBeenCalled()
   })
 
   it('rejects combined quantities above buyer demand', async () => {
     sourcesMock.mockResolvedValue(
-      sources([harvest, { ...second, quantityKg: 300 }]),
+      sources([
+        harvest,
+        {
+          ...second,
+          quantityKg: 300,
+        },
+      ]),
     )
 
     const user = await start()
 
     await user.click(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     )
+
     await user.click(
-      screen.getByRole('button', { name: 'Add source Second Farmer' }),
+      screen.getByRole('button', {
+        name: 'Add source Second Farmer',
+      }),
     )
 
     fireEvent.change(
       screen.getByLabelText('Quantity kg — source 2'),
-      { target: { value: '300' } },
+      {
+        target: {
+          value: '300',
+        },
+      },
     )
 
     await fees(user)
+
     await user.click(
-      screen.getByRole('button', { name: 'Save draft quotation' }),
+      screen.getByRole('button', {
+        name: 'Save draft quotation',
+      }),
     )
 
-    expect(screen.getByRole('alert'))
-      .toHaveTextContent('exceed the buyer request')
+    expect(
+      screen.getByRole('alert'),
+    ).toHaveTextContent('exceed the buyer request')
+
     expect(createMock).not.toHaveBeenCalled()
   })
 
   it('retains entered values after a rejected save', async () => {
     createMock.mockRejectedValue(
-      new ApiError('The buyer request is closed.', 409),
+      new ApiError(
+        'The buyer request is closed.',
+        409,
+      ),
     )
 
     const user = await start()
 
     await user.click(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
-    )
-    await fees(user)
-    await user.click(
-      screen.getByRole('button', { name: 'Save draft quotation' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     )
 
-    expect(await screen.findByRole('alert'))
-      .toHaveTextContent('The buyer request is closed.')
-    expect(screen.getByLabelText('Service fee — LKR'))
-      .toHaveValue(4500)
-    expect(screen.getByLabelText('Quantity kg — source 1'))
-      .toHaveValue(300)
+    await fees(user)
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Save draft quotation',
+      }),
+    )
+
+    expect(
+      await screen.findByRole('alert'),
+    ).toHaveTextContent(
+      'The buyer request is closed.',
+    )
+
+    expect(
+      screen.getByLabelText('Service fee — LKR'),
+    ).toHaveValue(4500)
+
+    expect(
+      screen.getByLabelText('Quantity kg — source 1'),
+    ).toHaveValue(300)
   })
 
   it('keeps selected sources while paging harvest results', async () => {
     sourcesMock
-      .mockResolvedValueOnce(sources([harvest], 0, true))
-      .mockResolvedValueOnce(sources([second], 1))
+      .mockResolvedValueOnce(
+        sources([harvest], 0, true),
+      )
+      .mockResolvedValueOnce(
+        sources([second], 1),
+      )
 
     const user = await start()
 
     await user.click(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     )
+
     await user.click(
-      screen.getByRole('button', { name: 'Next sources' }),
+      screen.getByRole('button', {
+        name: 'Next sources',
+      }),
     )
 
     await screen.findByRole('button', {
       name: 'Add source Second Farmer',
     })
 
-    expect(screen.getByLabelText('Quantity kg — source 1'))
-      .toHaveValue(300)
+    expect(
+      screen.getByLabelText('Quantity kg — source 1'),
+    ).toHaveValue(300)
 
-    expect(sourcesMock).toHaveBeenLastCalledWith(
+    expect(
+      sourcesMock,
+    ).toHaveBeenLastCalledWith(
       1,
-      expect.objectContaining({ district: 'Matale' }),
+      expect.objectContaining({
+        district: 'Matale',
+      }),
       expect.any(AbortSignal),
     )
   })
 
   it('requires an agreed price for an unpriced listing', async () => {
     sourcesMock.mockResolvedValue(
-      sources([{ ...harvest, expectedPricePerKg: null }]),
+      sources([
+        {
+          ...harvest,
+          expectedPricePerKg: null,
+        },
+      ]),
     )
 
     const user = await start()
 
     await user.click(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
-    )
-    await fees(user)
-    await user.click(
-      screen.getByRole('button', { name: 'Save draft quotation' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     )
 
-    expect(screen.getByRole('alert'))
-      .toHaveTextContent('Check each source')
+    await fees(user)
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Save draft quotation',
+      }),
+    )
+
+    expect(
+      screen.getByRole('alert'),
+    ).toHaveTextContent('Check each source')
+
     expect(createMock).not.toHaveBeenCalled()
   })
 
@@ -393,12 +508,16 @@ describe('Quotations', () => {
       screen.getByLabelText('Quotation ID'),
       'quote-1',
     )
+
     await user.click(
-      screen.getByRole('button', { name: 'Open saved quotation' }),
+      screen.getByRole('button', {
+        name: 'Open saved quotation',
+      }),
     )
 
-    expect(await screen.findByText('Quotation DRAFT'))
-      .toBeInTheDocument()
+    expect(
+      await screen.findByText('Quotation DRAFT'),
+    ).toBeInTheDocument()
 
     expect(getMock).toHaveBeenCalledWith(
       'quote-1',
@@ -408,7 +527,12 @@ describe('Quotations', () => {
 
   it('does not offer closed buyer requests', async () => {
     buyersMock.mockResolvedValue(
-      buyers([{ ...buyer, status: 'CANCELLED' }]),
+      buyers([
+        {
+          ...buyer,
+          status: 'CANCELLED',
+        },
+      ]),
     )
 
     render(<Quotations />)
@@ -422,33 +546,56 @@ describe('Quotations', () => {
 
   it('handles fractional quantities without floating point allocation errors', async () => {
     buyersMock.mockResolvedValue(
-      buyers([{ ...buyer, quantityKg: 0.3 }]),
+      buyers([
+        {
+          ...buyer,
+          quantityKg: 0.3,
+        },
+      ]),
     )
+
     sourcesMock.mockResolvedValue(
       sources([
-        { ...harvest, quantityKg: 0.1 },
-        { ...second, quantityKg: 0.2 },
+        {
+          ...harvest,
+          quantityKg: 0.1,
+        },
+        {
+          ...second,
+          quantityKg: 0.2,
+        },
       ]),
     )
 
     const user = await start()
 
     await user.click(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
-    )
-    await user.click(
-      screen.getByRole('button', { name: 'Add source Second Farmer' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     )
 
-    expect(screen.getByLabelText('Quantity kg — source 2'))
-      .toHaveValue(0.2)
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Add source Second Farmer',
+      }),
+    )
+
+    expect(
+      screen.getByLabelText('Quantity kg — source 2'),
+    ).toHaveValue(0.2)
 
     await fees(user)
+
     await user.click(
-      screen.getByRole('button', { name: 'Save draft quotation' }),
+      screen.getByRole('button', {
+        name: 'Save draft quotation',
+      }),
     )
 
-    await waitFor(() => expect(createMock).toHaveBeenCalledOnce())
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledOnce()
+    })
 
     expect(
       createMock.mock.calls[0][0].lines.map(
@@ -458,21 +605,23 @@ describe('Quotations', () => {
   })
 
   it('filters mismatched crops and sources available after the required date', async () => {
-    sourcesMock.mockResolvedValue(sources([
-      harvest,
-      {
-        ...second,
-        id: 'wrong-crop',
-        farmerName: 'Wrong Crop',
-        cropName: 'Tomato Sauce',
-      },
-      {
-        ...second,
-        id: 'late',
-        farmerName: 'Late Farmer',
-        availableFrom: '2099-01-02',
-      },
-    ]))
+    sourcesMock.mockResolvedValue(
+      sources([
+        harvest,
+        {
+          ...second,
+          id: 'wrong-crop',
+          farmerName: 'Wrong Crop',
+          cropName: 'Tomato Sauce',
+        },
+        {
+          ...second,
+          id: 'late',
+          farmerName: 'Late Farmer',
+          availableFrom: '2099-01-02',
+        },
+      ]),
+    )
 
     await start()
 
@@ -497,16 +646,25 @@ describe('Quotations', () => {
     const user = await start()
 
     await user.click(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
-    )
-    await fees(user)
-    await user.click(
-      screen.getByRole('button', { name: 'Save draft quotation' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     )
 
-    const button = await screen.findByRole('button', {
-      name: 'Saving draft…',
-    })
+    await fees(user)
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Save draft quotation',
+      }),
+    )
+
+    const button = await screen.findByRole(
+      'button',
+      {
+        name: 'Saving draft…',
+      },
+    )
 
     await user.click(button)
 
@@ -516,7 +674,9 @@ describe('Quotations', () => {
 
   it('retries a failed harvest load', async () => {
     sourcesMock
-      .mockRejectedValueOnce(new Error('Sources unavailable'))
+      .mockRejectedValueOnce(
+        new Error('Sources unavailable'),
+      )
       .mockResolvedValueOnce(sources())
 
     const user = userEvent.setup()
@@ -529,11 +689,14 @@ describe('Quotations', () => {
       }),
     )
 
-    expect(await screen.findByRole('alert'))
-      .toHaveTextContent('Sources unavailable')
+    expect(
+      await screen.findByRole('alert'),
+    ).toHaveTextContent('Sources unavailable')
 
     await user.click(
-      screen.getByRole('button', { name: 'Retry sources' }),
+      screen.getByRole('button', {
+        name: 'Retry sources',
+      }),
     )
 
     expect(
@@ -547,7 +710,9 @@ describe('Quotations', () => {
     const user = await start()
 
     await user.click(
-      screen.getByRole('button', { name: 'Add source Demo Farmer' }),
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
     )
 
     const confirmed = screen.getByLabelText(
@@ -557,8 +722,14 @@ describe('Quotations', () => {
     await user.click(confirmed)
 
     fireEvent.change(
-      screen.getByLabelText('Farmer price LKR/kg — source 1'),
-      { target: { value: '190' } },
+      screen.getByLabelText(
+        'Farmer price LKR/kg — source 1',
+      ),
+      {
+        target: {
+          value: '190',
+        },
+      },
     )
 
     expect(confirmed).not.toBeChecked()

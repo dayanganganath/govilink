@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+
 import { listBuyerRequests } from './buyerApi'
 import type { BuyerRequest } from './buyerApi'
+
 import { searchHarvests } from './harvestApi'
 import type { HarvestListing } from './harvestApi'
-import { createQuotationDraft, getQuotation } from './quotationApi'
+
+import {
+  createQuotationDraft,
+  getQuotation,
+} from './quotationApi'
 import type { Quotation } from './quotationApi'
+
+import QuotationIssue from './QuotationIssue'
+
 import './Quotations.css'
 
 type PageInfo = {
@@ -22,13 +31,13 @@ type DraftLine = {
   confirmed: boolean
 }
 
-function message(error: unknown) {
+function message(error: unknown): string {
   return error instanceof Error
     ? error.message
     : 'The request failed. Please try again.'
 }
 
-function today() {
+function today(): string {
   const parts = new Intl.DateTimeFormat('en', {
     timeZone: 'Asia/Colombo',
     year: 'numeric',
@@ -56,9 +65,12 @@ function decimal(
 
   const [whole, fraction = ''] = value.split('.')
 
-  if (fraction.length > scale) return null
+  if (fraction.length > scale) {
+    return null
+  }
 
-  const units = BigInt(whole) * (10n ** BigInt(scale))
+  const units =
+    BigInt(whole) * (10n ** BigInt(scale))
     + BigInt(fraction.padEnd(scale, '0'))
 
   if (
@@ -68,17 +80,27 @@ function decimal(
     return null
   }
 
-  return { units, number: Number(value) }
+  return {
+    units,
+    number: Number(value),
+  }
 }
 
-function quantityText(units: bigint) {
-  return `${units / 1000n}.${String(units % 1000n).padStart(3, '0')}`
+function quantityText(units: bigint): string {
+  const whole = units / 1000n
+  const fraction = String(units % 1000n).padStart(3, '0')
+
+  return `${whole}.${fraction}`
 }
 
 function usePage<T>(
   load: (page: number, signal: AbortSignal) => Promise<T>,
 ) {
-  const [query, setQuery] = useState({ page: 0, revision: 0 })
+  const [query, setQuery] = useState({
+    page: 0,
+    revision: 0,
+  })
+
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -107,16 +129,27 @@ function usePage<T>(
   function reload(page = query.page) {
     setLoading(true)
     setError('')
+
     setQuery((previous) => ({
       page,
       revision: previous.revision + 1,
     }))
   }
 
-  return { data, loading, error, reload }
+  return {
+    data,
+    loading,
+    error,
+    reload,
+  }
 }
 
-function Pager({ data, loading, label, change }: {
+function Pager({
+  data,
+  loading,
+  label,
+  change,
+}: {
   data: PageInfo | null
   loading: boolean
   label: string
@@ -151,10 +184,17 @@ function Pager({ data, loading, label, change }: {
   )
 }
 
-function BuyerPicker({ choose }: {
+function BuyerPicker({
+  choose,
+}: {
   choose: (buyer: BuyerRequest) => void
 }) {
-  const { data, loading, error, reload } = usePage(listBuyerRequests)
+  const {
+    data,
+    loading,
+    error,
+    reload,
+  } = usePage(listBuyerRequests)
 
   return (
     <section className="panel quote-panel">
@@ -169,12 +209,17 @@ function BuyerPicker({ choose }: {
         Refresh buyers
       </button>
 
-      {loading && <p role="status">Loading buyer requests…</p>}
+      {loading && (
+        <p role="status">Loading buyer requests…</p>
+      )}
 
       {error && (
         <p role="alert">
           {error}{' '}
-          <button type="button" onClick={() => reload()}>
+          <button
+            type="button"
+            onClick={() => reload()}
+          >
             Retry buyers
           </button>
         </p>
@@ -183,13 +228,21 @@ function BuyerPicker({ choose }: {
       {!loading && !error && data && (
         <>
           {data.content.length === 0 && (
-            <p>No buyer requests yet. Add one in Buyer requests.</p>
+            <p>
+              No buyer requests yet. Add one in Buyer requests.
+            </p>
           )}
 
           <div className="quote-cards">
             {data.content.map((buyer) => (
-              <article className="quote-source" key={buyer.id}>
-                <strong>{buyer.buyerName} · {buyer.cropName}</strong>
+              <article
+                className="quote-source"
+                key={buyer.id}
+              >
+                <strong>
+                  {buyer.buyerName} · {buyer.cropName}
+                </strong>
+
                 <p>
                   {buyer.quantityKg} kg · {buyer.district}
                   {' · '}Required {buyer.requiredBy}
@@ -222,25 +275,35 @@ function BuyerPicker({ choose }: {
   )
 }
 
-function Sources({ buyer, lines, add }: {
+function Sources({
+  buyer,
+  lines,
+  add,
+}: {
   buyer: BuyerRequest
   lines: DraftLine[]
   add: (harvest: HarvestListing) => void
 }) {
   const load = useCallback(
-    (page: number, signal: AbortSignal) => searchHarvests(
-      page,
-      {
-        query: buyer.cropName,
-        district: buyer.district,
-        status: 'AVAILABLE',
-      },
-      signal,
-    ),
+    (page: number, signal: AbortSignal) =>
+      searchHarvests(
+        page,
+        {
+          query: buyer.cropName,
+          district: buyer.district,
+          status: 'AVAILABLE',
+        },
+        signal,
+      ),
     [buyer.cropName, buyer.district],
   )
 
-  const { data, loading, error, reload } = usePage(load)
+  const {
+    data,
+    loading,
+    error,
+    reload,
+  } = usePage(load)
 
   const eligible = data?.content.filter((harvest) =>
     harvest.status === 'AVAILABLE'
@@ -252,8 +315,12 @@ function Sources({ buyer, lines, add }: {
   ) ?? []
 
   return (
-    <section className="quote-sources" aria-label="Harvest sources">
+    <section
+      className="quote-sources"
+      aria-label="Harvest sources"
+    >
       <h3>Choose harvest sources</h3>
+
       <p>
         Sources can supply part of the requested quantity.
         Drafts do not reserve harvests.
@@ -268,12 +335,17 @@ function Sources({ buyer, lines, add }: {
         Refresh sources
       </button>
 
-      {loading && <p role="status">Loading harvest sources…</p>}
+      {loading && (
+        <p role="status">Loading harvest sources…</p>
+      )}
 
       {error && (
         <p role="alert">
           {error}{' '}
-          <button type="button" onClick={() => reload()}>
+          <button
+            type="button"
+            onClick={() => reload()}
+          >
             Retry sources
           </button>
         </p>
@@ -286,11 +358,17 @@ function Sources({ buyer, lines, add }: {
           )}
 
           {eligible.map((harvest) => (
-            <article className="quote-source" key={harvest.id}>
+            <article
+              className="quote-source"
+              key={harvest.id}
+            >
               <strong>{harvest.farmerName}</strong>
+
               <p>
-                {harvest.quantityKg} kg · Available {harvest.availableFrom}
+                {harvest.quantityKg} kg
+                {' · '}Available {harvest.availableFrom}
               </p>
+
               <p>
                 {harvest.expectedPricePerKg === null
                   ? 'Farmer price needs confirmation'
@@ -302,7 +380,10 @@ function Sources({ buyer, lines, add }: {
                 type="button"
                 disabled={
                   lines.length >= 50
-                  || lines.some((line) => line.harvest.id === harvest.id)
+                  || lines.some(
+                    (line) =>
+                      line.harvest.id === harvest.id,
+                  )
                 }
                 onClick={() => add(harvest)}
               >
@@ -323,7 +404,11 @@ function Sources({ buyer, lines, add }: {
   )
 }
 
-function DraftForm({ buyer, saved, cancel }: {
+function DraftForm({
+  buyer,
+  saved,
+  cancel,
+}: {
   buyer: BuyerRequest
   saved: (quote: Quotation) => void
   cancel: () => void
@@ -334,58 +419,85 @@ function DraftForm({ buyer, saved, cancel }: {
   const [address, setAddress] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
   const saving = useRef(false)
   const heading = useRef<HTMLHeadingElement>(null)
 
-  useEffect(() => heading.current?.focus(), [])
+  useEffect(() => {
+    heading.current?.focus()
+  }, [])
 
   function add(harvest: HarvestListing) {
     setLines((current) => {
       if (
         current.length >= 50
-        || current.some((line) => line.harvest.id === harvest.id)
+        || current.some(
+          (line) => line.harvest.id === harvest.id,
+        )
       ) {
         return current
       }
 
-      const demand = decimal(String(buyer.quantityKg), 3, 9)?.units ?? 0n
+      const demand =
+        decimal(String(buyer.quantityKg), 3, 9)?.units
+        ?? 0n
 
       const used = current.reduce(
         (sum, line) =>
-          sum + (decimal(line.quantity, 3, 9)?.units ?? 0n),
+          sum
+          + (
+            decimal(line.quantity, 3, 9)?.units
+            ?? 0n
+          ),
         0n,
       )
 
-      const remaining = demand > used ? demand - used : 0n
-      const available =
-        decimal(String(harvest.quantityKg), 3, 9)?.units ?? 0n
+      const remaining =
+        demand > used ? demand - used : 0n
 
-      const quantity = remaining < available ? remaining : available
+      const available =
+        decimal(String(harvest.quantityKg), 3, 9)?.units
+        ?? 0n
+
+      const quantity =
+        remaining < available ? remaining : available
 
       return [
         ...current,
         {
           harvest,
-          quantity: quantity > 0n ? quantityText(quantity) : '',
-          price: harvest.expectedPricePerKg === null
-            ? ''
-            : String(harvest.expectedPricePerKg),
+          quantity:
+            quantity > 0n ? quantityText(quantity) : '',
+          price:
+            harvest.expectedPricePerKg === null
+              ? ''
+              : String(harvest.expectedPricePerKg),
           confirmed: false,
         },
       ]
     })
   }
 
-  function change(index: number, update: Partial<DraftLine>) {
-    setLines((current) => current.map((line, position) =>
-      position === index ? { ...line, ...update } : line,
-    ))
+  function change(
+    index: number,
+    update: Partial<DraftLine>,
+  ) {
+    setLines((current) =>
+      current.map((line, position) =>
+        position === index
+          ? { ...line, ...update }
+          : line,
+      ),
+    )
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault()
 
     if (saving.current) return
+
     setError('')
 
     if (!lines.length) {
@@ -403,19 +515,34 @@ function DraftForm({ buyer, saved, cancel }: {
       return
     }
 
-    const demand = decimal(String(buyer.quantityKg), 3, 9)
+    const demand = decimal(
+      String(buyer.quantityKg),
+      3,
+      9,
+    )
 
-    const budget = buyer.maxPricePerKg === null
-      ? null
-      : decimal(String(buyer.maxPricePerKg), 2, 10)
+    const budget =
+      buyer.maxPricePerKg === null
+        ? null
+        : decimal(
+          String(buyer.maxPricePerKg),
+          2,
+          10,
+        )
 
     let totalQuantity = 0n
+
     const selected = []
 
     for (const line of lines) {
       const quantity = decimal(line.quantity, 3, 9)
       const price = decimal(line.price, 2, 10)
-      const available = decimal(String(line.harvest.quantityKg), 3, 9)
+
+      const available = decimal(
+        String(line.harvest.quantityKg),
+        3,
+        9,
+      )
 
       if (
         !quantity
@@ -447,7 +574,9 @@ function DraftForm({ buyer, saved, cancel }: {
     }
 
     if (!demand || totalQuantity > demand.units) {
-      setError('Selected quantities exceed the buyer request.')
+      setError(
+        'Selected quantities exceed the buyer request.',
+      )
       return
     }
 
@@ -455,13 +584,15 @@ function DraftForm({ buyer, saved, cancel }: {
     setBusy(true)
 
     try {
-      saved(await createQuotationDraft({
+      const result = await createQuotationDraft({
         buyerRequestId: buyer.id,
         serviceFee: service.number,
         deliveryFee: delivery.number,
         deliveryAddress: address.trim() || null,
         lines: selected,
-      }))
+      })
+
+      saved(result)
     } catch (failure) {
       setError(message(failure))
     } finally {
@@ -477,7 +608,8 @@ function DraftForm({ buyer, saved, cancel }: {
       </h2>
 
       <p>
-        {buyer.cropName} · {buyer.quantityKg} kg · {buyer.district}
+        {buyer.cropName} · {buyer.quantityKg} kg
+        {' · '}{buyer.district}
         {' · '}Required {buyer.requiredBy}
       </p>
 
@@ -498,12 +630,21 @@ function DraftForm({ buyer, saved, cancel }: {
       </button>
 
       <form noValidate onSubmit={submit}>
-        <fieldset className="quote-fieldset" disabled={busy}>
-          <Sources buyer={buyer} lines={lines} add={add} />
+        <fieldset
+          className="quote-fieldset"
+          disabled={busy}
+        >
+          <Sources
+            buyer={buyer}
+            lines={lines}
+            add={add}
+          />
 
           <h3>Selected sources</h3>
 
-          {lines.length === 0 && <p>No sources selected.</p>}
+          {lines.length === 0 && (
+            <p>No sources selected.</p>
+          )}
 
           {lines.map((line, index) => (
             <section
@@ -520,9 +661,11 @@ function DraftForm({ buyer, saved, cancel }: {
                   min="0.001"
                   step="0.001"
                   value={line.quantity}
-                  onChange={(event) => change(index, {
-                    quantity: event.target.value,
-                  })}
+                  onChange={(event) =>
+                    change(index, {
+                      quantity: event.target.value,
+                    })
+                  }
                 />
               </label>
 
@@ -533,10 +676,12 @@ function DraftForm({ buyer, saved, cancel }: {
                   min="0.01"
                   step="0.01"
                   value={line.price}
-                  onChange={(event) => change(index, {
-                    price: event.target.value,
-                    confirmed: false,
-                  })}
+                  onChange={(event) =>
+                    change(index, {
+                      price: event.target.value,
+                      confirmed: false,
+                    })
+                  }
                 />
               </label>
 
@@ -544,9 +689,11 @@ function DraftForm({ buyer, saved, cancel }: {
                 <input
                   type="checkbox"
                   checked={line.confirmed}
-                  onChange={(event) => change(index, {
-                    confirmed: event.target.checked,
-                  })}
+                  onChange={(event) =>
+                    change(index, {
+                      confirmed: event.target.checked,
+                    })
+                  }
                 />
                 Price agreed with farmer — source {index + 1}
               </label>
@@ -554,9 +701,13 @@ function DraftForm({ buyer, saved, cancel }: {
               <button
                 className="text-button"
                 type="button"
-                onClick={() => setLines((current) =>
-                  current.filter((_, position) => position !== index),
-                )}
+                onClick={() =>
+                  setLines((current) =>
+                    current.filter(
+                      (_, position) => position !== index,
+                    ),
+                  )
+                }
               >
                 Remove source {index + 1}
               </button>
@@ -571,7 +722,9 @@ function DraftForm({ buyer, saved, cancel }: {
                 min="0"
                 step="0.01"
                 value={serviceFee}
-                onChange={(event) => setServiceFee(event.target.value)}
+                onChange={(event) =>
+                  setServiceFee(event.target.value)
+                }
               />
             </label>
 
@@ -582,7 +735,9 @@ function DraftForm({ buyer, saved, cancel }: {
                 min="0"
                 step="0.01"
                 value={deliveryFee}
-                onChange={(event) => setDeliveryFee(event.target.value)}
+                onChange={(event) =>
+                  setDeliveryFee(event.target.value)
+                }
               />
             </label>
           </div>
@@ -592,7 +747,9 @@ function DraftForm({ buyer, saved, cancel }: {
             <textarea
               maxLength={500}
               value={address}
-              onChange={(event) => setAddress(event.target.value)}
+              onChange={(event) =>
+                setAddress(event.target.value)
+              }
             />
           </label>
 
@@ -602,11 +759,21 @@ function DraftForm({ buyer, saved, cancel }: {
           </p>
 
           {error && (
-            <p className="notice notice-error" role="alert">{error}</p>
+            <p
+              className="notice notice-error"
+              role="alert"
+            >
+              {error}
+            </p>
           )}
 
-          <button className="button button-primary" type="submit">
-            {busy ? 'Saving draft…' : 'Save draft quotation'}
+          <button
+            className="button button-primary"
+            type="submit"
+          >
+            {busy
+              ? 'Saving draft…'
+              : 'Save draft quotation'}
           </button>
         </fieldset>
       </form>
@@ -615,29 +782,47 @@ function DraftForm({ buyer, saved, cancel }: {
 }
 
 export default function Quotations() {
-  const [buyer, setBuyer] = useState<BuyerRequest | null>(null)
-  const [quote, setQuote] = useState<Quotation | null>(null)
+  const [buyer, setBuyer] =
+    useState<BuyerRequest | null>(null)
+
+  const [quote, setQuote] =
+    useState<Quotation | null>(null)
+
   const [id, setId] = useState('')
   const [lookupError, setLookupError] = useState('')
   const [lookingUp, setLookingUp] = useState(false)
-  const lookup = useRef<AbortController | null>(null)
-  const resultHeading = useRef<HTMLHeadingElement>(null)
+
+  const lookup =
+    useRef<AbortController | null>(null)
+
+  const resultHeading =
+    useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
-    if (quote) resultHeading.current?.focus()
+    if (quote) {
+      resultHeading.current?.focus()
+    }
   }, [quote])
 
-  useEffect(() => () => lookup.current?.abort(), [])
+  useEffect(() => {
+    return () => lookup.current?.abort()
+  }, [])
 
-  async function open(event: FormEvent<HTMLFormElement>) {
+  async function open(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault()
 
-    if (!id.trim() || lookingUp) return
+    if (!id.trim() || lookingUp) {
+      return
+    }
 
     lookup.current?.abort()
 
     const controller = new AbortController()
+
     lookup.current = controller
+
     setLookingUp(true)
     setLookupError('')
 
@@ -647,13 +832,17 @@ export default function Quotations() {
         controller.signal,
       )
 
-      if (!controller.signal.aborted) setQuote(result)
+      if (!controller.signal.aborted) {
+        setQuote(result)
+      }
     } catch (failure) {
       if (!controller.signal.aborted) {
         setLookupError(message(failure))
       }
     } finally {
-      if (!controller.signal.aborted) setLookingUp(false)
+      if (!controller.signal.aborted) {
+        setLookingUp(false)
+      }
     }
   }
 
@@ -667,7 +856,9 @@ export default function Quotations() {
       <section className="page-heading">
         <div>
           <p className="eyebrow">MANAGED SALES</p>
+
           <h1>Quotations</h1>
+
           <p className="subtitle">
             Prepare clear prices for produce, coordination and delivery.
           </p>
@@ -675,18 +866,29 @@ export default function Quotations() {
       </section>
 
       {quote ? (
-        <section className="panel quote-panel" aria-label="Saved quotation">
-          <p role="status">Quotation {quote.status}</p>
+        <section
+          className="panel quote-panel"
+          aria-label="Saved quotation"
+        >
+          <p role="status">
+            Quotation {quote.status}
+          </p>
 
           <h2 ref={resultHeading} tabIndex={-1}>
             {quote.buyerName} · {quote.district}
           </h2>
 
           <p>
-            Quotation ID: <strong className="quote-id">{quote.id}</strong>
+            Quotation ID:{' '}
+            <strong className="quote-id">
+              {quote.id}
+            </strong>
           </p>
 
-          <p>{quote.quantityKg} kg · Required {quote.requiredBy}</p>
+          <p>
+            {quote.quantityKg} kg
+            {' · '}Required {quote.requiredBy}
+          </p>
 
           <div className="table-wrap">
             <table aria-label="Quotation lines">
@@ -699,13 +901,24 @@ export default function Quotations() {
                   <th>Price</th>
                 </tr>
               </thead>
+
               <tbody>
                 {quote.lines.map((line) => (
                   <tr key={line.id}>
-                    <td>{line.farmerName} · {line.cropName}</td>
+                    <td>
+                      {line.farmerName} · {line.cropName}
+                    </td>
+
                     <td>{line.quantityKg}</td>
-                    <td>{money.format(line.farmerPricePerKg)}</td>
-                    <td>{money.format(line.lineSubtotal)}</td>
+
+                    <td>
+                      {money.format(line.farmerPricePerKg)}
+                    </td>
+
+                    <td>
+                      {money.format(line.lineSubtotal)}
+                    </td>
+
                     <td>
                       {line.priceConfirmed
                         ? 'Confirmed'
@@ -720,19 +933,30 @@ export default function Quotations() {
           <dl className="quote-totals">
             <div>
               <dt>Produce subtotal</dt>
-              <dd>{money.format(quote.produceSubtotal)}</dd>
+              <dd>
+                {money.format(quote.produceSubtotal)}
+              </dd>
             </div>
+
             <div>
               <dt>Service fee</dt>
-              <dd>{money.format(quote.serviceFee)}</dd>
+              <dd>
+                {money.format(quote.serviceFee)}
+              </dd>
             </div>
+
             <div>
               <dt>Delivery fee</dt>
-              <dd>{money.format(quote.deliveryFee)}</dd>
+              <dd>
+                {money.format(quote.deliveryFee)}
+              </dd>
             </div>
+
             <div>
               <dt>Total</dt>
-              <dd>{money.format(quote.total)}</dd>
+              <dd>
+                {money.format(quote.total)}
+              </dd>
             </div>
           </dl>
 
@@ -747,6 +971,12 @@ export default function Quotations() {
               ? 'This draft has not reserved stock or approved an order.'
               : `Current status: ${quote.status}`}
           </p>
+
+          <QuotationIssue
+            key={`${quote.id}:${quote.version}`}
+            quotation={quote}
+            onChanged={setQuote}
+          />
 
           <button
             className="button button-secondary"
@@ -777,7 +1007,9 @@ export default function Quotations() {
               Quotation ID
               <input
                 value={id}
-                onChange={(event) => setId(event.target.value)}
+                onChange={(event) =>
+                  setId(event.target.value)
+                }
                 required
               />
             </label>
@@ -787,18 +1019,24 @@ export default function Quotations() {
               type="submit"
               disabled={lookingUp}
             >
-              {lookingUp ? 'Opening…' : 'Open saved quotation'}
+              {lookingUp
+                ? 'Opening…'
+                : 'Open saved quotation'}
             </button>
 
-            {lookupError && <p role="alert">{lookupError}</p>}
+            {lookupError && (
+              <p role="alert">{lookupError}</p>
+            )}
           </form>
 
-          <BuyerPicker choose={(value) => {
-            lookup.current?.abort()
-            setLookingUp(false)
-            setLookupError('')
-            setBuyer(value)
-          }} />
+          <BuyerPicker
+            choose={(value) => {
+              lookup.current?.abort()
+              setLookingUp(false)
+              setLookupError('')
+              setBuyer(value)
+            }}
+          />
         </>
       )}
     </>
