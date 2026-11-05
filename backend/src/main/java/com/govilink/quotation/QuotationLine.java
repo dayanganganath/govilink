@@ -2,7 +2,6 @@ package com.govilink.quotation;
 
 import com.govilink.harvest.HarvestListing;
 import com.govilink.harvest.HarvestStatus;
-
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -31,20 +30,10 @@ public class QuotationLine {
     @Column(name = "crop_name", nullable = false, length = 100)
     private String cropName;
 
-    @Column(
-            name = "quantity_kg",
-            nullable = false,
-            precision = 12,
-            scale = 3
-    )
+    @Column(name = "quantity_kg", nullable = false, precision = 12, scale = 3)
     private BigDecimal quantityKg;
 
-    @Column(
-            name = "farmer_price_per_kg",
-            nullable = false,
-            precision = 12,
-            scale = 2
-    )
+    @Column(name = "farmer_price_per_kg", nullable = false, precision = 12, scale = 2)
     private BigDecimal farmerPricePerKg;
 
     @Column(name = "price_confirmed", nullable = false)
@@ -69,8 +58,7 @@ public class QuotationLine {
         }
 
         String requestedCrop = quotation.getBuyerRequest()
-                .getCropName()
-                .strip();
+                .getCropName().strip();
 
         if (!harvest.getCropName().strip()
                 .equalsIgnoreCase(requestedCrop)) {
@@ -79,13 +67,8 @@ public class QuotationLine {
             );
         }
 
-        String sourceDistrict = harvest.getFarmer()
-                .getDistrict()
-                .strip();
-
-        if (!sourceDistrict.equalsIgnoreCase(
-                quotation.getDistrict().strip()
-        )) {
+        if (!harvest.getFarmer().getDistrict().strip()
+                .equalsIgnoreCase(quotation.getDistrict().strip())) {
             throw new IllegalArgumentException(
                     "Harvest district does not match the quotation."
             );
@@ -131,8 +114,10 @@ public class QuotationLine {
         this.priceConfirmed = priceConfirmed;
     }
 
-    // PostgreSQL generates its stored subtotal.
-    // This calculation also works before the draft is saved.
+    void confirmPrice() {
+        priceConfirmed = true;
+    }
+
     public BigDecimal getLineSubtotal() {
         return quantityKg.multiply(farmerPricePerKg)
                 .setScale(2, RoundingMode.HALF_UP);

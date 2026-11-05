@@ -41,6 +41,9 @@ export interface Quotation {
   version: number
   createdAt: string
   updatedAt: string
+  issuedBy: string | null
+  issuedAt: string | null
+  expiresAt: string | null
   lines: QuotationLine[]
 }
 
@@ -59,11 +62,16 @@ export interface CreateQuotationDraft {
   lines: CreateQuotationLine[]
 }
 
+export interface IssueQuotationRequest {
+  version: number
+  expiresAt: string
+  confirmedLineIds: string[]
+}
+
 export function createQuotationDraft(
   draft: CreateQuotationDraft,
   signal?: AbortSignal,
 ): Promise<Quotation> {
-  // Totals and staff identity are determined by the backend.
   const body: CreateQuotationDraft = {
     buyerRequestId: draft.buyerRequestId,
     serviceFee: draft.serviceFee,
@@ -94,5 +102,29 @@ export function getQuotation(
   return request<Quotation>(
     `/api/v1/quotations/${encodeURIComponent(id)}`,
     { signal },
+  )
+}
+
+export function issueQuotation(
+  id: string,
+  issue: IssueQuotationRequest,
+  signal?: AbortSignal,
+): Promise<Quotation> {
+  const body: IssueQuotationRequest = {
+    version: issue.version,
+    expiresAt: issue.expiresAt,
+    confirmedLineIds: [...issue.confirmedLineIds],
+  }
+
+  return request<Quotation>(
+    `/api/v1/quotations/${encodeURIComponent(id)}/issue`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal,
+    },
   )
 }
