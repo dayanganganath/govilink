@@ -6,6 +6,14 @@ export type ApprovalChannel =
   | 'EMAIL'
   | 'IN_PERSON'
 
+export type OrderStatus =
+  | 'CONFIRMED'
+  | 'COLLECTION_IN_PROGRESS'
+  | 'COLLECTED'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'CANCELLED'
+
 export interface ApproveOrderRequest {
   quotationVersion: number
   buyerContactName: string
@@ -28,13 +36,7 @@ export interface ManagedOrder {
   id: string
   quotationId: string
   buyerRequestId: string
-  status:
-    | 'CONFIRMED'
-    | 'COLLECTION_IN_PROGRESS'
-    | 'COLLECTED'
-    | 'OUT_FOR_DELIVERY'
-    | 'DELIVERED'
-    | 'CANCELLED'
+  status: OrderStatus
   buyerContactName: string
   approvalChannel: ApprovalChannel
   approvalReference: string
@@ -51,6 +53,29 @@ export interface ManagedOrder {
   reservations: OrderReservation[]
 }
 
+export interface OrderSummary {
+  id: string
+  quotationId: string
+  buyerName: string
+  district: string
+  requiredBy: string
+  status: OrderStatus
+  currency: 'LKR'
+  quantityKg: number
+  total: number
+  recordedAt: string
+}
+
+export interface OrdersPage {
+  content: OrderSummary[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
 export function approveOrder(
   quotationId: string,
   approval: ApproveOrderRequest,
@@ -59,9 +84,7 @@ export function approveOrder(
     `/api/v1/quotations/${encodeURIComponent(quotationId)}/approve`,
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         quotationVersion: approval.quotationVersion,
         buyerContactName: approval.buyerContactName.trim(),
@@ -73,8 +96,30 @@ export function approveOrder(
   )
 }
 
-export function getOrder(id: string): Promise<ManagedOrder> {
+export function getOrder(
+  id: string,
+  signal?: AbortSignal,
+): Promise<ManagedOrder> {
   return request<ManagedOrder>(
     `/api/v1/orders/${encodeURIComponent(id)}`,
+    { signal },
+  )
+}
+
+export function listOrders(
+  page = 0,
+  status: OrderStatus | '' = '',
+  signal?: AbortSignal,
+): Promise<OrdersPage> {
+  const query = new URLSearchParams({
+    page: String(page),
+    size: '20',
+  })
+
+  if (status) query.set('status', status)
+
+  return request<OrdersPage>(
+    `/api/v1/orders?${query}`,
+    { signal },
   )
 }

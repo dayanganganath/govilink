@@ -3,9 +3,10 @@ import FarmerDirectory from './FarmerDirectory'
 import HarvestListings from './HarvestListings'
 import BuyerRequests from './BuyerRequests'
 import Quotations from './Quotations'
+import Orders from './Orders'
 import './HarvestListings.css'
 
-type Page = 'farmers' | 'harvests' | 'buyers' | 'quotes'
+type Page = 'farmers' | 'harvests' | 'buyers' | 'quotes' | 'orders'
 
 const navigation: {
   id: Page
@@ -16,6 +17,7 @@ const navigation: {
   { id: 'harvests', label: 'Harvest listings', icon: '↗' },
   { id: 'buyers', label: 'Buyer requests', icon: '◇' },
   { id: 'quotes', label: 'Quotations', icon: '▤' },
+  { id: 'orders', label: 'Orders', icon: '▤' },
 ]
 
 export default function App() {
@@ -26,6 +28,7 @@ export default function App() {
     harvests: false,
     buyers: false,
     quotes: false,
+    orders: false,
   })
 
   function navigate(next: Page) {
@@ -113,6 +116,12 @@ export default function App() {
         {visited.quotes && (
           <div hidden={page !== 'quotes'}>
             <Quotations />
+          </div>
+        )}
+
+        {visited.orders && (
+          <div hidden={page !== 'orders'}>
+            <Orders />
           </div>
         )}
 

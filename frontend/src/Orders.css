@@ -1,0 +1,60 @@
+.orders-panel {
+  margin-bottom: 1.25rem;
+  padding: 1.5rem;
+}
+
+.orders-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.orders-toolbar select {
+  width: auto;
+  min-width: 12rem;
+}
+
+.orders-panel > label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.orders-panel > input {
+  margin-bottom: 0.75rem;
+}
+
+.orders-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.orders-totals {
+  max-width: 32rem;
+}
+
+.orders-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #dce5d7;
+}
+
+.orders-totals dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .orders-panel {
+    padding: 1rem;
+  }
+
+  .orders-pager {
+    flex-wrap: wrap;
+  }
+}
