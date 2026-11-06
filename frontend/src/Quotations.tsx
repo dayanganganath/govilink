@@ -14,6 +14,7 @@ import {
 import type { Quotation } from './quotationApi'
 
 import QuotationIssue from './QuotationIssue'
+import BuyerApproval from './BuyerApproval'
 
 import './Quotations.css'
 
@@ -974,6 +975,11 @@ export default function Quotations() {
 
           <QuotationIssue
             key={`${quote.id}:${quote.version}`}
+            quotation={quote}
+            onChanged={setQuote}
+          />
+          <BuyerApproval
+            key={quote.id}
             quotation={quote}
             onChanged={setQuote}
           />
