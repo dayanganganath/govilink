@@ -8,6 +8,8 @@ import type {
   OrderStatus,
 } from './orderApi'
 
+import OrderCollection from './OrderCollection'
+
 import './Orders.css'
 
 const statuses: OrderStatus[] = [
@@ -117,6 +119,12 @@ function OrderDetails({ id }: { id: string }) {
             Recorded: {dates.format(new Date(order.recordedAt))}
             {' '}(Sri Lanka time)
           </p>
+
+          <OrderCollection
+            key={order.id}
+            order={order}
+            onChanged={setOrder}
+          />
 
           <h3>Stock reservations</h3>
 
