@@ -10,6 +10,8 @@ import type {
 
 import OrderCollection from './OrderCollection'
 
+import GoodsReceipts from './GoodsReceipts'
+
 import './Orders.css'
 
 const statuses: OrderStatus[] = [
@@ -125,6 +127,14 @@ function OrderDetails({ id }: { id: string }) {
             order={order}
             onChanged={setOrder}
           />
+
+          {order.status !== 'CONFIRMED' && (
+            <GoodsReceipts
+              key={order.id}
+              order={order}
+              onChanged={setOrder}
+            />
+          )}
 
           <h3>Stock reservations</h3>
 

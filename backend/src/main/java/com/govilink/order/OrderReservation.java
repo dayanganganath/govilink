@@ -6,6 +6,7 @@ import com.govilink.quotation.QuotationLine;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
@@ -30,13 +31,17 @@ public class OrderReservation {
     @JoinColumn(name = "harvest_listing_id", nullable = false)
     private HarvestListing harvestListing;
 
+    @Column(name = "quantity_kg", nullable = false, precision = 12, scale = 3)
+    private BigDecimal quantityKg;
+
     @Column(
-            name = "quantity_kg",
+            name = "collected_quantity_kg",
             nullable = false,
             precision = 12,
             scale = 3
     )
-    private BigDecimal quantityKg;
+    private BigDecimal collectedQuantityKg =
+            new BigDecimal("0.000");
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -60,16 +65,11 @@ public class OrderReservation {
             QuotationLine line,
             Instant now
     ) {
-        this.order = Objects.requireNonNull(
-                order,
-                "Order is required."
-        );
-
+        this.order = Objects.requireNonNull(order, "Order is required.");
         this.quotationLine = Objects.requireNonNull(
                 line,
                 "Quotation line is required."
         );
-
         this.reservedAt = Objects.requireNonNull(
                 now,
                 "Reservation time is required."
@@ -102,6 +102,56 @@ public class OrderReservation {
         this.quantityKg = line.getQuantityKg();
     }
 
+    public void collect(BigDecimal quantity, Instant receivedAt) {
+        if (quantity == null || quantity.signum() <= 0
+                || receivedAt == null) {
+            throw new IllegalArgumentException(
+                    "A positive collection quantity and receipt time are required."
+            );
+        }
+
+        BigDecimal normalized;
+
+        try {
+            normalized = quantity.setScale(
+                    3,
+                    RoundingMode.UNNECESSARY
+            );
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException(
+                    "Collection quantity supports up to three decimal places.",
+                    exception
+            );
+        }
+
+        if (receivedAt.isBefore(reservedAt)) {
+            throw new IllegalArgumentException(
+                    "Goods cannot be received before the stock was reserved."
+            );
+        }
+
+        if (status != ReservationStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    "Only active reservations can receive goods."
+            );
+        }
+
+        if (normalized.compareTo(getRemainingQuantityKg()) > 0) {
+            throw new IllegalStateException(
+                    "Received quantity exceeds this reservation's remaining quantity."
+            );
+        }
+
+        harvestListing.collectReservation(normalized);
+
+        collectedQuantityKg = collectedQuantityKg.add(normalized);
+
+        if (collectedQuantityKg.compareTo(quantityKg) == 0) {
+            status = ReservationStatus.CONSUMED;
+            finishedAt = receivedAt;
+        }
+    }
+
     public UUID getId() {
         return id;
     }
@@ -120,6 +170,16 @@ public class OrderReservation {
 
     public BigDecimal getQuantityKg() {
         return quantityKg;
+    }
+
+    public BigDecimal getCollectedQuantityKg() {
+        return collectedQuantityKg;
+    }
+
+    public BigDecimal getRemainingQuantityKg() {
+        return status == ReservationStatus.ACTIVE
+                ? quantityKg.subtract(collectedQuantityKg)
+                : new BigDecimal("0.000");
     }
 
     public ReservationStatus getStatus() {

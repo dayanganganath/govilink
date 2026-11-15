@@ -56,6 +56,15 @@ public class HarvestListing {
             new BigDecimal("0.000");
 
     @Column(
+            name = "collected_quantity_kg",
+            nullable = false,
+            precision = 12,
+            scale = 3
+    )
+    private BigDecimal collectedQuantityKg =
+            new BigDecimal("0.000");
+
+    @Column(
             name = "expected_price_per_kg",
             precision = 12,
             scale = 2
@@ -101,7 +110,7 @@ public class HarvestListing {
     }
 
     public void reserve(BigDecimal quantity) {
-        BigDecimal requested = reservationQuantity(quantity);
+        BigDecimal requested = stockQuantity(quantity);
 
         if (status != HarvestStatus.AVAILABLE) {
             throw new IllegalStateException(
@@ -125,7 +134,7 @@ public class HarvestListing {
     }
 
     public void releaseReservation(BigDecimal quantity) {
-        BigDecimal released = reservationQuantity(quantity);
+        BigDecimal released = stockQuantity(quantity);
 
         if (released.compareTo(reservedQuantityKg) > 0) {
             throw new IllegalStateException(
@@ -134,6 +143,30 @@ public class HarvestListing {
         }
 
         reservedQuantityKg = reservedQuantityKg.subtract(released);
+    }
+
+    public void collectReservation(BigDecimal quantity) {
+        BigDecimal collected = stockQuantity(quantity);
+
+        if (status != HarvestStatus.AVAILABLE) {
+            throw new IllegalStateException(
+                    "Only an available harvest listing can be collected."
+            );
+        }
+
+        if (collected.compareTo(reservedQuantityKg) > 0) {
+            throw new IllegalStateException(
+                    "Collected quantity exceeds the reserved stock."
+            );
+        }
+
+        /*
+         * Collection transfers stock out of reservations.
+         * It does not increase the available balance or change
+         * the original listed quantity.
+         */
+        reservedQuantityKg = reservedQuantityKg.subtract(collected);
+        collectedQuantityKg = collectedQuantityKg.add(collected);
     }
 
     public void markSold() {
@@ -160,12 +193,10 @@ public class HarvestListing {
         status = nextStatus;
     }
 
-    private static BigDecimal reservationQuantity(
-            BigDecimal quantity
-    ) {
+    private static BigDecimal stockQuantity(BigDecimal quantity) {
         if (quantity == null || quantity.signum() <= 0) {
             throw new IllegalArgumentException(
-                    "Reservation quantity must be greater than zero."
+                    "Stock quantity must be greater than zero."
             );
         }
 
@@ -179,14 +210,14 @@ public class HarvestListing {
                     new BigDecimal("999999999.999")
             ) > 0) {
                 throw new IllegalArgumentException(
-                        "Reservation quantity exceeds the supported maximum."
+                        "Stock quantity exceeds the supported maximum."
                 );
             }
 
             return normalized;
         } catch (ArithmeticException exception) {
             throw new IllegalArgumentException(
-                    "Reservation quantity supports up to three decimal places.",
+                    "Stock quantity supports up to three decimal places.",
                     exception
             );
         }
@@ -224,12 +255,18 @@ public class HarvestListing {
         return reservedQuantityKg;
     }
 
+    public BigDecimal getCollectedQuantityKg() {
+        return collectedQuantityKg;
+    }
+
     public BigDecimal getAvailableQuantityKg() {
         if (status != HarvestStatus.AVAILABLE) {
             return new BigDecimal("0.000");
         }
 
-        return quantityKg.subtract(reservedQuantityKg);
+        return quantityKg
+                .subtract(reservedQuantityKg)
+                .subtract(collectedQuantityKg);
     }
 
     public BigDecimal getExpectedPricePerKg() {
