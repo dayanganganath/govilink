@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError } from './http'
 import { getOrder, type ManagedOrder } from './orderApi'
 import {
@@ -128,9 +128,6 @@ export default function GoodsReceipts({ order, onChanged }: Props) {
     const controller = new AbortController()
     let active = true
 
-    setLoading(true)
-    setLoadError('')
-
     listGoodsReceipts(order.id, query.page, controller.signal)
       .then((result) => {
         if (active) {
@@ -252,7 +249,7 @@ export default function GoodsReceipts({ order, onChanged }: Props) {
     }
   }
 
-  function submit(event: React.FormEvent<HTMLFormElement>): void {
+  function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
 
     if (
