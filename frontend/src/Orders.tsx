@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 
 import { getOrder, listOrders } from './orderApi'
 import type {
@@ -9,8 +8,8 @@ import type {
 } from './orderApi'
 
 import OrderCollection from './OrderCollection'
-
 import GoodsReceipts from './GoodsReceipts'
+import OrderDispatch from './OrderDispatch'
 
 import './Orders.css'
 
@@ -34,11 +33,11 @@ const dates = new Intl.DateTimeFormat('en-LK', {
   timeStyle: 'short',
 })
 
-function label(value: string) {
+function label(value: string): string {
   return value.toLowerCase().replaceAll('_', ' ')
 }
 
-function message(error: unknown) {
+function message(error: unknown): string {
   return error instanceof Error
     ? error.message
     : 'Unable to load orders. Please try again.'
@@ -55,13 +54,19 @@ function OrderDetails({ id }: { id: string }) {
 
     getOrder(id, controller.signal)
       .then((result) => {
-        if (controller.signal.aborted) return
+        if (controller.signal.aborted) {
+          return
+        }
+
         setOrder(result)
         setError('')
         setLoading(false)
       })
       .catch((failure: unknown) => {
-        if (controller.signal.aborted) return
+        if (controller.signal.aborted) {
+          return
+        }
+
         setError(message(failure))
         setLoading(false)
       })
@@ -69,7 +74,7 @@ function OrderDetails({ id }: { id: string }) {
     return () => controller.abort()
   }, [id, revision])
 
-  function reload() {
+  function reload(): void {
     setOrder(null)
     setError('')
     setLoading(true)
@@ -77,7 +82,10 @@ function OrderDetails({ id }: { id: string }) {
   }
 
   return (
-    <section className="panel orders-panel" aria-label="Order details">
+    <section
+      className="panel orders-panel"
+      aria-label="Order details"
+    >
       <h2>Order details</h2>
 
       <button
@@ -89,52 +97,96 @@ function OrderDetails({ id }: { id: string }) {
         Refresh order
       </button>
 
-      {loading && <p role="status">Loading order details…</p>}
+      {loading && (
+        <p role="status">Loading order details...</p>
+      )}
 
       {error && (
-        <p className="notice notice-error" role="alert">{error}</p>
+        <p className="notice notice-error" role="alert">
+          {error}
+        </p>
       )}
 
       {!loading && !error && order && (
         <>
-          <p>Order ID: <strong className="quote-id">{order.id}</strong></p>
-          <p>Quotation ID: <span className="quote-id">{order.quotationId}</span></p>
-          <p>Status: <strong>{label(order.status)}</strong></p>
+          <p>
+            Order ID:{' '}
+            <strong className="quote-id">{order.id}</strong>
+          </p>
+
+          <p>
+            Quotation ID:{' '}
+            <span className="quote-id">
+              {order.quotationId}
+            </span>
+          </p>
+
+          <p>
+            Status: <strong>{label(order.status)}</strong>
+          </p>
 
           <dl className="orders-totals">
-            <div><dt>Quantity</dt><dd>{order.quantityKg} kg</dd></div>
-            <div><dt>Produce subtotal</dt><dd>{money.format(order.produceSubtotal)}</dd></div>
-            <div><dt>Service fee</dt><dd>{money.format(order.serviceFee)}</dd></div>
-            <div><dt>Delivery fee</dt><dd>{money.format(order.deliveryFee)}</dd></div>
-            <div><dt>Total</dt><dd>{money.format(order.total)}</dd></div>
+            <div>
+              <dt>Quantity</dt>
+              <dd>{order.quantityKg} kg</dd>
+            </div>
+
+            <div>
+              <dt>Produce subtotal</dt>
+              <dd>{money.format(order.produceSubtotal)}</dd>
+            </div>
+
+            <div>
+              <dt>Service fee</dt>
+              <dd>{money.format(order.serviceFee)}</dd>
+            </div>
+
+            <div>
+              <dt>Delivery fee</dt>
+              <dd>{money.format(order.deliveryFee)}</dd>
+            </div>
+
+            <div>
+              <dt>Total</dt>
+              <dd>{money.format(order.total)}</dd>
+            </div>
           </dl>
 
           <h3>Buyer approval</h3>
+
           <p>Contact: {order.buyerContactName}</p>
           <p>Channel: {label(order.approvalChannel)}</p>
           <p>Reference: {order.approvalReference}</p>
+
           <p>
             Approved: {dates.format(new Date(order.approvedAt))}
             {' '}(Sri Lanka time)
           </p>
+
           <p>
             Recorded: {dates.format(new Date(order.recordedAt))}
             {' '}(Sri Lanka time)
           </p>
 
           <OrderCollection
-            key={order.id}
+            key={`collection-${order.id}`}
             order={order}
             onChanged={setOrder}
           />
 
           {order.status !== 'CONFIRMED' && (
             <GoodsReceipts
-              key={order.id}
+              key={`receipts-${order.id}`}
               order={order}
               onChanged={setOrder}
             />
           )}
+
+          <OrderDispatch
+            key={`dispatch-${order.id}`}
+            order={order}
+            onChanged={setOrder}
+          />
 
           <h3>Stock reservations</h3>
 
@@ -142,12 +194,13 @@ function OrderDetails({ id }: { id: string }) {
             <table aria-label="Order stock reservations">
               <thead>
                 <tr>
-                  <th>Farmer</th>
-                  <th>Crop</th>
-                  <th>Quantity kg</th>
-                  <th>Reservation status</th>
+                  <th scope="col">Farmer</th>
+                  <th scope="col">Crop</th>
+                  <th scope="col">Quantity kg</th>
+                  <th scope="col">Reservation status</th>
                 </tr>
               </thead>
+
               <tbody>
                 {order.reservations.map((reservation) => (
                   <tr key={reservation.id}>
@@ -171,7 +224,11 @@ export default function Orders() {
     page: number
     status: OrderStatus | ''
     revision: number
-  }>({ page: 0, status: '', revision: 0 })
+  }>({
+    page: 0,
+    status: '',
+    revision: 0,
+  })
 
   const [data, setData] = useState<OrdersPage | null>(null)
   const [error, setError] = useState('')
@@ -184,13 +241,19 @@ export default function Orders() {
 
     listOrders(query.page, query.status, controller.signal)
       .then((result) => {
-        if (controller.signal.aborted) return
+        if (controller.signal.aborted) {
+          return
+        }
+
         setData(result)
         setError('')
         setLoading(false)
       })
       .catch((failure: unknown) => {
-        if (controller.signal.aborted) return
+        if (controller.signal.aborted) {
+          return
+        }
+
         setError(message(failure))
         setLoading(false)
       })
@@ -198,10 +261,14 @@ export default function Orders() {
     return () => controller.abort()
   }, [query])
 
-  function change(page: number, status = query.status) {
+  function change(
+    page: number,
+    status: OrderStatus | '' = query.status,
+  ): void {
     setLoading(true)
     setData(null)
     setError('')
+
     setQuery((current) => ({
       page,
       status,
@@ -209,7 +276,7 @@ export default function Orders() {
     }))
   }
 
-  function open(event: FormEvent<HTMLFormElement>) {
+  function open(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
 
     if (lookupId.trim()) {
@@ -229,9 +296,13 @@ export default function Orders() {
         </div>
       </section>
 
-      <section className="panel orders-panel" aria-label="Orders workspace">
+      <section
+        className="panel orders-panel"
+        aria-label="Orders workspace"
+      >
         <div className="orders-toolbar">
           <label htmlFor="orders-status">Order status</label>
+
           <select
             id="orders-status"
             name="status"
@@ -241,8 +312,11 @@ export default function Orders() {
             }
           >
             <option value="">All statuses</option>
+
             {statuses.map((status) => (
-              <option key={status} value={status}>{label(status)}</option>
+              <option key={status} value={status}>
+                {label(status)}
+              </option>
             ))}
           </select>
 
@@ -256,12 +330,17 @@ export default function Orders() {
           </button>
         </div>
 
-        {loading && <p role="status">Loading orders…</p>}
+        {loading && (
+          <p role="status">Loading orders...</p>
+        )}
 
         {error && (
           <p className="notice notice-error" role="alert">
             {error}{' '}
-            <button type="button" onClick={() => change(query.page)}>
+            <button
+              type="button"
+              onClick={() => change(query.page)}
+            >
               Retry orders
             </button>
           </p>
@@ -278,22 +357,27 @@ export default function Orders() {
                 <table aria-label="Managed orders">
                   <thead>
                     <tr>
-                      <th>Buyer / district</th>
-                      <th>Required by</th>
-                      <th>Status</th>
-                      <th>Quantity kg</th>
-                      <th>Total</th>
-                      <th>Action</th>
+                      <th scope="col">Buyer / district</th>
+                      <th scope="col">Required by</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Quantity kg</th>
+                      <th scope="col">Total</th>
+                      <th scope="col">Action</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {data.content.map((order) => (
                       <tr key={order.id}>
-                        <td>{order.buyerName} · {order.district}</td>
+                        <td>
+                          {order.buyerName} · {order.district}
+                        </td>
+
                         <td>{order.requiredBy}</td>
                         <td>{label(order.status)}</td>
                         <td>{order.quantityKg}</td>
                         <td>{money.format(order.total)}</td>
+
                         <td>
                           <button
                             className="button button-secondary"
@@ -322,7 +406,8 @@ export default function Orders() {
 
               <span>
                 Page {data.totalPages ? data.page + 1 : 0}
-                {' / '}{data.totalPages}
+                {' / '}
+                {data.totalPages}
               </span>
 
               <button
@@ -338,8 +423,12 @@ export default function Orders() {
         )}
       </section>
 
-      <form className="panel orders-panel" onSubmit={open}>
+      <form
+        className="panel orders-panel"
+        onSubmit={open}
+      >
         <label htmlFor="saved-order-id">Saved order ID</label>
+
         <input
           id="saved-order-id"
           name="orderId"
@@ -348,7 +437,10 @@ export default function Orders() {
           required
         />
 
-        <button className="button button-secondary" type="submit">
+        <button
+          className="button button-secondary"
+          type="submit"
+        >
           Open saved order
         </button>
       </form>
@@ -363,7 +455,10 @@ export default function Orders() {
             Close order details
           </button>
 
-          <OrderDetails key={selectedId} id={selectedId} />
+          <OrderDetails
+            key={selectedId}
+            id={selectedId}
+          />
         </>
       )}
     </>
