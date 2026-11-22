@@ -10,6 +10,8 @@ import type {
 import OrderCollection from './OrderCollection'
 import GoodsReceipts from './GoodsReceipts'
 import OrderDispatch from './OrderDispatch'
+import OrderFacts from './OrderFacts'
+import OrderOverview, { OrderStatusBadge } from './OrderOverview'
 
 import './Orders.css'
 
@@ -25,12 +27,6 @@ const statuses: OrderStatus[] = [
 const money = new Intl.NumberFormat('en-LK', {
   style: 'currency',
   currency: 'LKR',
-})
-
-const dates = new Intl.DateTimeFormat('en-LK', {
-  timeZone: 'Asia/Colombo',
-  dateStyle: 'medium',
-  timeStyle: 'short',
 })
 
 function label(value: string): string {
@@ -125,48 +121,9 @@ function OrderDetails({ id }: { id: string }) {
             Status: <strong>{label(order.status)}</strong>
           </p>
 
-          <dl className="orders-totals">
-            <div>
-              <dt>Quantity</dt>
-              <dd>{order.quantityKg} kg</dd>
-            </div>
+          <OrderOverview order={order} />
 
-            <div>
-              <dt>Produce subtotal</dt>
-              <dd>{money.format(order.produceSubtotal)}</dd>
-            </div>
-
-            <div>
-              <dt>Service fee</dt>
-              <dd>{money.format(order.serviceFee)}</dd>
-            </div>
-
-            <div>
-              <dt>Delivery fee</dt>
-              <dd>{money.format(order.deliveryFee)}</dd>
-            </div>
-
-            <div>
-              <dt>Total</dt>
-              <dd>{money.format(order.total)}</dd>
-            </div>
-          </dl>
-
-          <h3>Buyer approval</h3>
-
-          <p>Contact: {order.buyerContactName}</p>
-          <p>Channel: {label(order.approvalChannel)}</p>
-          <p>Reference: {order.approvalReference}</p>
-
-          <p>
-            Approved: {dates.format(new Date(order.approvedAt))}
-            {' '}(Sri Lanka time)
-          </p>
-
-          <p>
-            Recorded: {dates.format(new Date(order.recordedAt))}
-            {' '}(Sri Lanka time)
-          </p>
+          <OrderFacts order={order} />
 
           <OrderCollection
             key={`collection-${order.id}`}
@@ -374,7 +331,7 @@ export default function Orders() {
                         </td>
 
                         <td>{order.requiredBy}</td>
-                        <td>{label(order.status)}</td>
+                        <td><OrderStatusBadge status={order.status} /></td>
                         <td>{order.quantityKg}</td>
                         <td>{money.format(order.total)}</td>
 

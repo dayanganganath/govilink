@@ -81,7 +81,11 @@ describe('Orders workspace', () => {
     }))
 
     expect(await screen.findByText('Test Farmer')).toBeInTheDocument()
-    expect(screen.getByText('Reference: Buyer approved by phone.')).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', {
+        name: 'Buyer approval details',
+      }),
+    ).toHaveTextContent('Buyer approved by phone.')
     expect(screen.getByRole('table', {
       name: 'Order stock reservations',
     })).toHaveTextContent('active')
