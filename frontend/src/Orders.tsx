@@ -10,6 +10,7 @@ import type {
 import OrderCollection from './OrderCollection'
 import GoodsReceipts from './GoodsReceipts'
 import OrderDispatch from './OrderDispatch'
+import OrderDelivery from './OrderDelivery'
 import OrderFacts from './OrderFacts'
 import OrderOverview, { OrderStatusBadge } from './OrderOverview'
 
@@ -141,6 +142,12 @@ function OrderDetails({ id }: { id: string }) {
 
           <OrderDispatch
             key={`dispatch-${order.id}`}
+            order={order}
+            onChanged={setOrder}
+          />
+
+          <OrderDelivery
+            key={`delivery-${order.id}`}
             order={order}
             onChanged={setOrder}
           />
