@@ -1,0 +1,374 @@
+.order-overview {
+  margin: 24px 0;
+}
+
+.order-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.order-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 22px;
+
+  border: 1px solid #dfe9e2;
+  border-radius: 14px;
+  background: #f9fcfa;
+}
+
+.order-summary-label {
+  color: #526e5e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.order-summary-card strong {
+  color: #204d35;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: clamp(23px, 2.2vw, 32px);
+  font-weight: 800;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-summary-card strong small {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.order-summary-caption {
+  color: #647c6b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.order-summary-accent {
+  border-color: #cddfcf;
+  background: #edf6ee;
+}
+
+/* Status badges */
+
+.order-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  padding: 7px 11px;
+
+  border: 1px solid transparent;
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.order-status-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.order-status-confirmed {
+  border-color: #d9e1ef;
+  background: #edf2fb;
+  color: #365b91;
+}
+
+.order-status-collection_in_progress {
+  border-color: #efdfb5;
+  background: #fff7e5;
+  color: #855d14;
+}
+
+.order-status-collected {
+  border-color: #cee5d6;
+  background: #eaf7ef;
+  color: #256341;
+}
+
+.order-status-out_for_delivery {
+  border-color: #ded5ef;
+  background: #f2edfa;
+  color: #6a4490;
+}
+
+.order-status-delivered {
+  border-color: #bcdcc9;
+  background: #dff1e6;
+  color: #1c5737;
+}
+
+.order-status-cancelled {
+  border-color: #efd3cd;
+  background: #fcefeb;
+  color: #994438;
+}
+
+/* Progress */
+
+.order-progress-card {
+  margin-top: 18px;
+  padding: 24px;
+
+  border: 1px solid #dfe9e2;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.order-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.order-progress-eyebrow {
+  color: #6a8272;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+}
+
+.orders-panel .order-progress-heading h3 {
+  margin: 6px 0 0;
+  font-size: 18px;
+}
+
+.order-progress-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+
+  margin: 26px 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.order-progress-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.order-progress-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 17px;
+  right: 0;
+  left: 44px;
+  height: 2px;
+  background: #e3ebe5;
+}
+
+.order-progress-marker {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+
+  border: 1px solid #dce6df;
+  border-radius: 50%;
+
+  background: #f5f8f6;
+  color: #7b8c81;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.order-progress-title {
+  margin-top: 4px;
+  color: #607769;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.order-progress-state {
+  color: #718477;
+  font-size: 11px;
+}
+
+.is-complete .order-progress-marker {
+  border-color: #bed9c7;
+  background: #e5f3e9;
+  color: #2d7046;
+}
+
+.is-complete.order-progress-step::after {
+  background: #a9cdb6;
+}
+
+.is-current .order-progress-marker {
+  border-color: #20583a;
+  background: #20583a;
+  color: #ffffff;
+  box-shadow: 0 0 0 5px #edf5ef;
+}
+
+.is-current .order-progress-title {
+  color: #20583a;
+}
+
+.is-current .order-progress-state {
+  color: #346f49;
+  font-weight: 600;
+}
+
+.orders-panel .order-next-step {
+  max-width: none;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f3f7f4;
+  color: #43624d;
+  font-size: 13px;
+}
+
+/* Responsive layout */
+
+@media (max-width: 1000px) {
+  .order-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .order-summary-accent {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .order-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .order-summary-accent {
+    grid-column: auto;
+  }
+
+  .order-summary-card {
+    padding: 18px;
+  }
+
+  .order-progress-card {
+    padding: 18px;
+  }
+
+  .order-progress-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .order-progress-step {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    column-gap: 14px;
+    row-gap: 2px;
+    padding-bottom: 22px;
+  }
+
+  .order-progress-marker {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+
+  .order-progress-title {
+    grid-column: 2;
+    margin-top: 0;
+  }
+
+  .order-progress-state {
+    grid-column: 2;
+  }
+
+  .order-progress-step:not(:last-child)::after {
+    top: 42px;
+    bottom: 5px;
+    left: 17px;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+
+  .order-progress-step:last-child {
+    padding-bottom: 0;
+  }
+}
+
+/* Refined overview cards */
+
+.order-summary-card {
+  position: relative;
+  padding: 24px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 5px 22px rgb(20 59 42 / 3%);
+}
+
+.order-summary-card::before {
+  content: '';
+  display: block;
+  width: 30px;
+  height: 4px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  background: #b9d6c1;
+}
+
+.order-summary-card strong {
+  letter-spacing: -0.8px;
+}
+
+.order-summary-accent {
+  border-color: #174b34;
+  background: linear-gradient(125deg, #123b2b, #245a3d);
+  box-shadow: 0 10px 26px rgb(18 59 43 / 12%);
+}
+
+.order-summary-accent::before {
+  background: #c4dfa8;
+}
+
+.order-summary-accent .order-summary-label {
+  color: #dcebdc;
+}
+
+.order-summary-accent strong {
+  color: #ffffff;
+}
+
+.order-summary-accent .order-summary-caption {
+  color: #c2d8c8;
+}
+
+.order-progress-card {
+  border-radius: 16px;
+  box-shadow: 0 5px 22px rgb(20 59 42 / 3%);
+}
+
+.order-progress-heading {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #edf2ee;
+}
+
+.order-progress-list {
+  margin-top: 28px;
+}
+
+.order-status-pill {
+  padding: 8px 12px;
+  letter-spacing: 0.1px;
+}

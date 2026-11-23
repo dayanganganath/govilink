@@ -116,7 +116,9 @@ export function listOrders(
     size: '20',
   })
 
-  if (status) query.set('status', status)
+  if (status) {
+    query.set('status', status)
+  }
 
   return request<OrdersPage>(
     `/api/v1/orders?${query}`,
