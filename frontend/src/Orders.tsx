@@ -11,6 +11,7 @@ import OrderCollection from './OrderCollection'
 import GoodsReceipts from './GoodsReceipts'
 import OrderDispatch from './OrderDispatch'
 import OrderDelivery from './OrderDelivery'
+import OrderCancellation from './OrderCancellation'
 import OrderFacts from './OrderFacts'
 import OrderOverview, { OrderStatusBadge } from './OrderOverview'
 
@@ -126,6 +127,14 @@ function OrderDetails({ id }: { id: string }) {
 
           <OrderFacts order={order} />
 
+          <OrderCancellation
+            key={`cancellation-${order.id}`}
+            order={order}
+            onChanged={setOrder}
+          />
+
+          {order.status !== 'CANCELLED' && (
+            <>
           <OrderCollection
             key={`collection-${order.id}`}
             order={order}
@@ -152,6 +161,8 @@ function OrderDetails({ id }: { id: string }) {
             onChanged={setOrder}
           />
 
+            </>
+          )}
           <h3>Stock reservations</h3>
 
           <div className="table-wrap">
