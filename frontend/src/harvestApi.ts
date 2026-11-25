@@ -8,6 +8,9 @@ export interface HarvestListing {
   district: string
   cropName: string
   quantityKg: number
+  availableQuantityKg?: number
+  reservedQuantityKg?: number
+  collectedQuantityKg?: number
   expectedPricePerKg: number | null
   availableFrom: string
   status: 'AVAILABLE' | 'SOLD' | 'CANCELLED'
@@ -67,9 +70,17 @@ export function searchHarvests(
     size: '10',
   })
 
-  if (filters.query) parameters.set('q', filters.query)
-  if (filters.district) parameters.set('district', filters.district)
-  if (filters.status) parameters.set('status', filters.status)
+  if (filters.query) {
+    parameters.set('q', filters.query)
+  }
+
+  if (filters.district) {
+    parameters.set('district', filters.district)
+  }
+
+  if (filters.status) {
+    parameters.set('status', filters.status)
+  }
 
   return request<HarvestPage>(
     `/api/v1/harvest-listings/search?${parameters}`,
@@ -80,11 +91,14 @@ export function searchHarvests(
 export function createHarvest(
   body: CreateHarvestRequest,
 ): Promise<HarvestListing> {
-  return request<HarvestListing>('/api/v1/harvest-listings', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  return request<HarvestListing>(
+    '/api/v1/harvest-listings',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  )
 }
 
 export function updateHarvestStatus(
@@ -113,7 +127,9 @@ export function searchActiveFarmers(
     size: '10',
   })
 
-  if (query) parameters.set('q', query)
+  if (query) {
+    parameters.set('q', query)
+  }
 
   return request<FarmerPage>(
     `/api/v1/farmers/search?${parameters}`,

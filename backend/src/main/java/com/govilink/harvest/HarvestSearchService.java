@@ -165,7 +165,10 @@ public class HarvestSearchService {
                 listing.getStatus(),
                 listing.getVersion(),
                 listing.getCreatedAt(),
-                listing.getUpdatedAt()
+                listing.getUpdatedAt(),
+                listing.getAvailableQuantityKg(),
+                listing.getReservedQuantityKg(),
+                listing.getCollectedQuantityKg()
         );
     }
 }
