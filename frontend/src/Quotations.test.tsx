@@ -70,6 +70,9 @@ const harvest: HarvestListing = {
   district: 'Matale',
   cropName: 'Tomato',
   quantityKg: 300,
+  availableQuantityKg: 300,
+  reservedQuantityKg: 0,
+  collectedQuantityKg: 0,
   expectedPricePerKg: 180,
   availableFrom: '2098-01-01',
   status: 'AVAILABLE',
@@ -78,12 +81,13 @@ const harvest: HarvestListing = {
   updatedAt: '',
 }
 
-const second = {
+const second: HarvestListing = {
   ...harvest,
   id: 'harvest-2',
   farmerId: 'farmer-2',
   farmerName: 'Second Farmer',
   quantityKg: 200,
+  availableQuantityKg: 200,
 }
 
 const quote: Quotation = {
@@ -138,7 +142,7 @@ const quote: Quotation = {
 }
 
 function buyers(
-  content = [buyer],
+  content: BuyerRequest[] = [buyer],
   page = 0,
   hasNext = false,
 ): BuyerRequestPage {
@@ -154,7 +158,7 @@ function buyers(
 }
 
 function sources(
-  content = [harvest, second],
+  content: HarvestListing[] = [harvest, second],
   page = 0,
   hasNext = false,
 ): HarvestPage {
@@ -343,6 +347,7 @@ describe('Quotations', () => {
         {
           ...second,
           quantityKg: 300,
+          availableQuantityKg: 300,
         },
       ]),
     )
@@ -559,10 +564,12 @@ describe('Quotations', () => {
         {
           ...harvest,
           quantityKg: 0.1,
+          availableQuantityKg: 0.1,
         },
         {
           ...second,
           quantityKg: 0.2,
+          availableQuantityKg: 0.2,
         },
       ]),
     )
@@ -733,5 +740,123 @@ describe('Quotations', () => {
     )
 
     expect(confirmed).not.toBeChecked()
+  })
+})
+
+describe('Quotation available stock', () => {
+  it('hides fully collected and unknown stock even when listed quantity is positive', async () => {
+    sourcesMock.mockResolvedValue(
+      sources([
+        harvest,
+        {
+          ...second,
+          availableQuantityKg: 0,
+          collectedQuantityKg: 200,
+        },
+        {
+          ...second,
+          id: 'unknown',
+          farmerName: 'Unknown Farmer',
+          availableQuantityKg: undefined,
+        },
+      ]),
+    )
+
+    await start()
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Add source Second Farmer',
+      }),
+    ).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Add source Unknown Farmer',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('prefills only available stock and rejects quantities above it', async () => {
+    sourcesMock.mockResolvedValue(
+      sources([
+        {
+          ...harvest,
+          availableQuantityKg: 40,
+          reservedQuantityKg: 260,
+        },
+      ]),
+    )
+
+    const user = await start()
+
+    expect(
+      screen.getByText('Available stock: 40 kg'),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
+    )
+
+    const input = screen.getByLabelText(
+      'Quantity kg — source 1',
+    )
+
+    expect(input).toHaveValue(40)
+    expect(input).toHaveAttribute('max', '40')
+
+    fireEvent.change(input, {
+      target: {
+        value: '40.001',
+      },
+    })
+
+    await fees(user)
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Save draft quotation',
+      }),
+    )
+
+    expect(
+      screen.getByRole('alert'),
+    ).toHaveTextContent('within the available stock')
+
+    expect(createMock).not.toHaveBeenCalled()
+  })
+
+  it('caps the initial quantity at remaining buyer demand', async () => {
+    buyersMock.mockResolvedValue(
+      buyers([
+        {
+          ...buyer,
+          quantityKg: 10,
+        },
+      ]),
+    )
+
+    sourcesMock.mockResolvedValue(
+      sources([
+        {
+          ...harvest,
+          availableQuantityKg: 40,
+        },
+      ]),
+    )
+
+    const user = await start()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Add source Demo Farmer',
+      }),
+    )
+
+    expect(
+      screen.getByLabelText('Quantity kg — source 1'),
+    ).toHaveValue(10)
   })
 })

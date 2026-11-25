@@ -6,6 +6,7 @@ import type { BuyerRequest } from './buyerApi'
 
 import { searchHarvests } from './harvestApi'
 import type { HarvestListing } from './harvestApi'
+import { hasAvailableHarvestStock } from './harvestStock'
 
 import {
   createQuotationDraft,
@@ -307,7 +308,7 @@ function Sources({
   } = usePage(load)
 
   const eligible = data?.content.filter((harvest) =>
-    harvest.status === 'AVAILABLE'
+    hasAvailableHarvestStock(harvest)
     && harvest.cropName.trim().toLowerCase()
       === buyer.cropName.trim().toLowerCase()
     && harvest.district.trim().toLowerCase()
@@ -366,8 +367,12 @@ function Sources({
               <strong>{harvest.farmerName}</strong>
 
               <p>
-                {harvest.quantityKg} kg
-                {' · '}Available {harvest.availableFrom}
+                Available stock: {harvest.availableQuantityKg} kg
+              </p>
+
+              <p>
+                Listed: {harvest.quantityKg} kg
+                {' · '}Available from {harvest.availableFrom}
               </p>
 
               <p>
@@ -429,6 +434,8 @@ function DraftForm({
   }, [])
 
   function add(harvest: HarvestListing) {
+    if (!hasAvailableHarvestStock(harvest)) return
+
     setLines((current) => {
       if (
         current.length >= 50
@@ -457,7 +464,7 @@ function DraftForm({
         demand > used ? demand - used : 0n
 
       const available =
-        decimal(String(harvest.quantityKg), 3, 9)?.units
+        decimal(String(harvest.availableQuantityKg), 3, 9)?.units
         ?? 0n
 
       const quantity =
@@ -540,7 +547,7 @@ function DraftForm({
       const price = decimal(line.price, 2, 10)
 
       const available = decimal(
-        String(line.harvest.quantityKg),
+        String(line.harvest.availableQuantityKg),
         3,
         9,
       )
@@ -552,7 +559,7 @@ function DraftForm({
         || quantity.units > available.units
       ) {
         setError(
-          'Check each source: quantity must be positive, within the listed stock and use at most 3 decimals. Price must be positive and use at most 2 decimals.',
+          'Check each source: quantity must be positive, within the available stock and use at most 3 decimals. Price must be positive and use at most 2 decimals.',
         )
         return
       }
@@ -660,6 +667,7 @@ function DraftForm({
                 <input
                   type="number"
                   min="0.001"
+                  max={line.harvest.availableQuantityKg}
                   step="0.001"
                   value={line.quantity}
                   onChange={(event) =>
@@ -978,6 +986,7 @@ export default function Quotations() {
             quotation={quote}
             onChanged={setQuote}
           />
+
           <BuyerApproval
             key={quote.id}
             quotation={quote}
