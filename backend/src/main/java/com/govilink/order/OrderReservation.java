@@ -182,6 +182,35 @@ public class OrderReservation {
                 : new BigDecimal("0.000");
     }
 
+    public void release(Instant releasedAt) {
+        Objects.requireNonNull(
+                releasedAt,
+                "Reservation release time is required."
+        );
+
+        if (status != ReservationStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    "Only active reservations can be released."
+            );
+        }
+
+        if (collectedQuantityKg.signum() != 0) {
+            throw new IllegalStateException(
+                    "Reservations with received goods cannot be released by order cancellation."
+            );
+        }
+
+        if (releasedAt.isBefore(reservedAt)) {
+            throw new IllegalArgumentException(
+                    "Stock cannot be released before it was reserved."
+            );
+        }
+
+        harvestListing.releaseReservation(quantityKg);
+        status = ReservationStatus.RELEASED;
+        finishedAt = releasedAt;
+    }
+
     public ReservationStatus getStatus() {
         return status;
     }

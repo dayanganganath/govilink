@@ -1,0 +1,117 @@
+.order-cancellation {
+  margin-block: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #ead9d5;
+  border-radius: 14px;
+  background: #fffaf8;
+}
+
+.order-cancellation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.order-cancellation-heading h3,
+.order-cancellation-heading p {
+  margin: 0;
+}
+
+.order-cancellation-heading .eyebrow {
+  margin-bottom: 0.4rem;
+  color: #825449;
+}
+
+.order-cancellation form {
+  max-width: 48rem;
+}
+
+.order-cancellation fieldset {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.order-cancellation textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100px;
+  padding: 0.8rem;
+  border: 1px solid #d8c8c2;
+  border-radius: 9px;
+  background: #fff;
+  color: #183c31;
+  font: inherit;
+  resize: vertical;
+}
+
+.order-cancellation .order-cancellation-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #ead9d5;
+  border-radius: 9px;
+  background: #fff;
+  line-height: 1.6;
+}
+
+.order-cancellation-confirm input[type='checkbox'] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 0.2rem;
+  accent-color: #913f32;
+}
+
+.order-cancellation .order-cancellation-submit {
+  justify-self: start;
+  min-height: 44px;
+  border: 1px solid #913f32;
+  background: #913f32;
+  color: #fff;
+}
+
+.order-cancellation .order-cancellation-submit:hover:not(:disabled) {
+  background: #763126;
+}
+
+.order-cancellation .order-cancellation-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.order-cancellation-audit dl {
+  margin: 0;
+}
+
+.order-cancellation-audit dl > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) 2fr;
+  gap: 1rem;
+  padding-block: 0.85rem;
+  border-bottom: 1px solid #eadfd9;
+}
+
+.order-cancellation-audit dt {
+  color: #6b726c;
+}
+
+.order-cancellation-audit dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 650px) {
+  .order-cancellation-audit dl > div {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+}
