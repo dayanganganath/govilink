@@ -14,6 +14,8 @@ import type {
 } from './harvestApi'
 import HarvestFilters from './HarvestFilters'
 import HarvestStatusActions from './HarvestStatusActions'
+import HarvestStockBalances from './HarvestStockBalances'
+import { hasAvailableHarvestStock } from './harvestStock'
 import './HarvestListings.css'
 
 function errorMessage(error: unknown): string {
@@ -364,11 +366,7 @@ export default function HarvestListings() {
 
   const ready = !loading && !listError && data !== null
 
-  const numberFormat = new Intl.NumberFormat('en-LK', {
-    maximumFractionDigits: 3,
-  })
-
-  const priceFormat = new Intl.NumberFormat('en-LK', {
+const priceFormat = new Intl.NumberFormat('en-LK', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
@@ -402,10 +400,15 @@ export default function HarvestListings() {
         </article>
 
         <article className="stat-card">
-          <span>Available on this page</span>
+          <span>With available stock on this page</span>
           <strong>
             {ready
-              ? data.content.filter((item) => item.status === 'AVAILABLE').length
+              ? (data.content.every((item) =>
+                  typeof item.availableQuantityKg === 'number' &&
+                  Number.isFinite(item.availableQuantityKg),
+                )
+                  ? data.content.filter(hasAvailableHarvestStock).length
+                  : '—')
               : '—'}
           </strong>
           <small>Listings shown below</small>
@@ -470,10 +473,10 @@ export default function HarvestListings() {
               <thead>
                 <tr>
                   <th scope="col">Crop / farmer</th>
-                  <th scope="col">Quantity</th>
+                  <th scope="col">Stock balances</th>
                   <th scope="col">LKR / kg</th>
                   <th scope="col">Available from</th>
-                  <th scope="col">Status</th>
+                  <th scope="col">Listing status</th>
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
@@ -513,7 +516,7 @@ export default function HarvestListings() {
                       </span>
                     </td>
 
-                    <td>{numberFormat.format(listing.quantityKg)} kg</td>
+                    <td><HarvestStockBalances listing={listing} /></td>
 
                     <td>
                       {listing.expectedPricePerKg === null

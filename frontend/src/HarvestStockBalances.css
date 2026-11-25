@@ -1,0 +1,38 @@
+.harvest-stock-balances {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(5rem, 1fr));
+  gap: 0.55rem;
+  min-width: 12rem;
+  margin: 0;
+}
+
+.harvest-stock-balances > div {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #e1e9e4;
+  border-radius: 8px;
+  background: #fafcfb;
+}
+
+.harvest-stock-balances dt {
+  margin-bottom: 0.25rem;
+  color: #62766b;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.harvest-stock-balances dd {
+  margin: 0;
+  color: #244638;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.harvest-stock-balances > .harvest-stock-available {
+  border-color: #c7dfcf;
+  background: #edf7f0;
+}
+
+.harvest-stock-available dd {
+  color: #1a5b38;
+}

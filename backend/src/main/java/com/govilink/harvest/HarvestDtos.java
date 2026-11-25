@@ -51,7 +51,10 @@ public final class HarvestDtos {
             HarvestStatus status,
             long version,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            BigDecimal availableQuantityKg,
+            BigDecimal reservedQuantityKg,
+            BigDecimal collectedQuantityKg
     ) {
     }
 
